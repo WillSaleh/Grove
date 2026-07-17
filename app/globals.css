@@ -1,3 +1,4 @@
+/* Global styles + the warm palette. Define every color token ONCE in the @theme block below; never hard-code hex in components. */
 @import "tailwindcss";
 
 :root {

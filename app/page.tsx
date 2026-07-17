@@ -1,3 +1,4 @@
+// Composes the page: loads the current tree (server-side) and lays out the shell + tree. Keep it thin — no business logic here.
 import Image from "next/image";
 
 export default function Home() {
