@@ -1,0 +1,3 @@
+[tool.yv-standards]
+profile = "base"
+dep-manager = "uv"
