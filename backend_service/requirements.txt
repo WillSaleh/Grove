@@ -61,6 +61,10 @@ postgrest==2.31.0
     # via supabase
 propcache==0.5.2
     # via yarl
+psycopg==3.3.4
+    # via -r requirements.in
+psycopg-binary==3.3.4
+    # via psycopg
 pycparser==3.0
     # via cffi
 pydantic==2.13.4
