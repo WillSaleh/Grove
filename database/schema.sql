@@ -6,13 +6,13 @@ CREATE TABLE users(
 
 CREATE TABLE trees(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id)
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- one row per node on the tree; tag distinguishes the three kinds ('root' | 'milestone' | 'leaf')
 CREATE TABLE entries(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tree_id UUID REFERENCES trees(id),
+  tree_id UUID REFERENCES trees(id) ON DELETE CASCADE,
   heading TEXT,
   entry_date DATE,
   body TEXT,
@@ -23,14 +23,14 @@ CREATE TABLE entries(
 
 CREATE TABLE entries_verses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entry_id UUID REFERENCES entries(id),
+  entry_id UUID REFERENCES entries(id) ON DELETE CASCADE,
   verse_ref TEXT,
   verse_text TEXT
 );
 
 CREATE TABLE entries_prayers(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entry_id UUID REFERENCES entries(id),
+  entry_id UUID REFERENCES entries(id) ON DELETE CASCADE,
   prayer_text TEXT,
   answered BOOLEAN NOT NULL DEFAULT false,
   answered_at DATE,
@@ -39,7 +39,7 @@ CREATE TABLE entries_prayers(
 
 CREATE TABLE entries_media (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entry_id   UUID REFERENCES entries(id),
+  entry_id   UUID REFERENCES entries(id) ON DELETE CASCADE,
   media_type TEXT NOT NULL,
   url        TEXT,
   label      TEXT
