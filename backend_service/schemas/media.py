@@ -1,12 +1,15 @@
 from pydantic import BaseModel
 
+
 class MediaCreate(BaseModel):
-    url: str
+    media_type: str
+    url: str | None = None
+    label: str | None = None
+
 
 class MediaResponse(BaseModel):
     id: str
-    url: str
-    node_id: str
+    entry_id: str
     media_type: str
-    label: str
-    
+    url: str | None = None
+    label: str | None = None
