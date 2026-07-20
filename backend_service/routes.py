@@ -6,11 +6,11 @@ router = APIRouter(prefix="")
 
 
 @router.get("/health/db")
-def health_db():
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
-            cur.fetchone()
+async def health_db():
+    async with await get_connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT 1")
+            await cur.fetchone()
     return {"db": "ok"}
 
 
