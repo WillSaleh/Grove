@@ -17,3 +17,6 @@ run:
 
 venv: _venv-default
 	uv pip install --index-url https://pypi.thewardro.be/simple -r requirements.txt --python .venv/bin/python
+
+psql:
+	psql "$(DATABASE_URL)" 
