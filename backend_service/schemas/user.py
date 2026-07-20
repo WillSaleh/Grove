@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-import uuid
 
 class UserCreate(BaseModel):
     display_name: str
