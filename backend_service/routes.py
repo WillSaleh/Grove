@@ -1,19 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from db import get_connection
 from handlers.users import (
-user_resource_create, 
-user_resource_get,
-users_collection_get,
-user_resource_delete
-) 
-from schemas.user import UserCreate
-
-
-from handlers.trees import (
-    tree_resource_create,
-    tree_resource_get,
-    tree_resource_delete,
+    user_resource_create,
+    user_resource_get,
+    users_collection_get,
+    user_resource_delete,
 )
 from handlers.entries import (
     entry_resource_create,
@@ -21,9 +13,8 @@ from handlers.entries import (
     entry_collection_get,
     entry_resource_delete,
 )
-from schemas.tree import TreeCreate
-
-from schemas.tree_node import EntryCreate
+from schemas.user import UserCreate, UserResponse
+from schemas.tree_node import EntryCreate, EntryResponse
 
 
 router = APIRouter(prefix="")
@@ -38,49 +29,50 @@ async def health_db():
     return {"db": "ok"}
 
 
-# basic user endpoints
-@router.get("/users")
+@router.get("/users", response_model=list[UserResponse])
 async def list_users():
     return await users_collection_get()
 
-@router.get("/users/{id}")
-async def get_user(id: str):
-    return await user_resource_get(id)
 
-@router.post("/users")
+@router.get("/users/{id}", response_model=UserResponse)
+async def get_user(id: str):
+    user = await user_resource_get(id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.post("/users", response_model=UserResponse, status_code=201)
 async def create_user(user: UserCreate):
     return await user_resource_create(user)
 
-@router.delete("/users/{id}")
+
+@router.delete("/users/{id}", status_code=204)
 async def delete_user(id: str):
-    return await user_resource_delete(id)
+    await user_resource_delete(id)
 
-#tree endpoints
-@router.post("/trees")
-async def create_tree(tree: TreeCreate):
-    return await tree_resource_create(tree)
 
-@router.get("/users/{user_id}/tree")
-async def get_tree(user_id: str):
-    return await tree_resource_get(user_id)
-
-@router.delete("/trees/{tree_id}")
-async def delete_tree(tree_id: str):
-    return await tree_resource_delete(tree_id)
-
-#entry endpoints
-@router.post("/entries")
+@router.post("/entries", response_model=EntryResponse, status_code=201)
 async def create_entry(entry: EntryCreate):
-    return await entry_resource_create(entry)
+    created = await entry_resource_create(entry)
+    if created is None:
+        raise HTTPException(status_code=404, detail="User or tree not found")
+    return created
 
-@router.get("/users/{user_id}/entries/{entry_id}")
+
+@router.get("/users/{user_id}/entries/{entry_id}", response_model=EntryResponse)
 async def get_entry(user_id: str, entry_id: str):
-    return await entry_resource_get(user_id, entry_id)
+    entry = await entry_resource_get(user_id, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
 
-@router.get("/users/{user_id}/entries")
+
+@router.get("/users/{user_id}/entries", response_model=list[EntryResponse])
 async def list_entries(user_id: str):
     return await entry_collection_get(user_id)
 
-@router.delete("/users/{user_id}/entries/{entry_id}")
+
+@router.delete("/users/{user_id}/entries/{entry_id}", status_code=204)
 async def delete_entry(user_id: str, entry_id: str):
-    return await entry_resource_delete(user_id, entry_id)
+    await entry_resource_delete(user_id, entry_id)

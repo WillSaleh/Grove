@@ -9,7 +9,7 @@ from schemas.verse import VerseResponse, VerseCreate
 
 
 class EntryCreate(BaseModel):
-    tree_id: str
+    user_id: str
     heading: str
     body: str
     tag: Literal["root", "milestone", "leaf"]
