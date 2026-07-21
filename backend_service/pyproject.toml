@@ -1,3 +1,7 @@
 [tool.yv-standards]
 profile = "base"
 dep-manager = "uv"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
