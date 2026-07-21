@@ -3,9 +3,9 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from schemas.media import MediaResponse
-from schemas.prayer import PrayerResponse
-from schemas.verse import VerseResponse
+from schemas.media import MediaResponse, MediaCreate
+from schemas.prayer import PrayerResponse, PrayerCreate
+from schemas.verse import VerseResponse, VerseCreate
 
 
 class EntryCreate(BaseModel):
@@ -16,6 +16,9 @@ class EntryCreate(BaseModel):
     category: str | None = None
     is_praise: bool = False
     is_encouragement: bool = False
+    verses: list[VerseCreate] = []
+    prayers: list[PrayerCreate] = []
+    media: list[MediaCreate] = []
 
 
 class EntryResponse(BaseModel):
