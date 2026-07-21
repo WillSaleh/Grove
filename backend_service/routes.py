@@ -14,6 +14,8 @@ from handlers.trees import (
     tree_resource_create,
     tree_resource_get,
     tree_resource_delete,
+)
+from handlers.entries import (
     entry_resource_create,
     entry_resource_get,
     entry_collection_get,
