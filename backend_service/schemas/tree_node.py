@@ -13,6 +13,7 @@ class EntryCreate(BaseModel):
     heading: str
     body: str
     tag: Literal["root", "milestone", "leaf"]
+    category: str | None = None
     is_praise: bool = False
     is_encouragement: bool = False
 
@@ -23,6 +24,7 @@ class EntryResponse(BaseModel):
     heading: str | None = None
     body: str | None = None
     tag: Literal["root", "milestone", "leaf"] | None = None
+    category: str | None = None
     entry_date: date | None = None
     is_praise: bool = False
     is_encouragement: bool = False
