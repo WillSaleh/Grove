@@ -1,5 +1,6 @@
 CREATE TABLE users(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT UNIQUE NOT NULL,
   display_name TEXT NOT NULL,
   walking_since DATE
 );

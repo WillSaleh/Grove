@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 
 class UserCreate(BaseModel):
+    username: str
     display_name: str
 
 
