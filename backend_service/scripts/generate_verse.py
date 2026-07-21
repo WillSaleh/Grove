@@ -1,6 +1,6 @@
 import re
 
-import requests
+import httpx
 
 BIBLE_URL = "https://biblecontent.youversionapi.com/4.1/bibles/{bible_id}/passages/"
 DEFAULT_VERSION = "NIV"
@@ -31,7 +31,7 @@ _VERSE_REF_PATTERN = re.compile(
 )
 
 
-def _disect_verse_ref(ref: str) -> dict[str, str | int | None]:
+async def _disect_verse_ref(ref: str) -> dict[str, str | int | None]:
     match = _VERSE_REF_PATTERN.match(ref.strip())
     if not match:
         raise ValueError(
@@ -66,15 +66,16 @@ def _disect_verse_ref(ref: str) -> dict[str, str | int | None]:
     }
 
 
-def retrieve_verse(ref: str) -> str:
-    parts = _disect_verse_ref(ref)
+async def retrieve_verse(ref: str) -> str:
+    parts = await _disect_verse_ref(ref)
     passage = (
         f"{parts['book']}.{parts['chapter']}.{parts['verse']}"
         f"{f'-{parts['end_verse']}' if parts['end_verse'] else ''}"
     )
     url = f"{BIBLE_URL.format(bible_id=parts['bible_id'])}{passage}/text"
 
-    response = requests.get(url)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
     if response.status_code != 200:
         raise ValueError(
             f"Unable to find verse {ref!r} in {parts['version']} (HTTP {response.status_code})."
