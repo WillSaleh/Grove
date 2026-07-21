@@ -13,8 +13,14 @@ from handlers.entries import (
     entry_collection_get,
     entry_resource_delete,
 )
+from handlers.tags import (
+    tag_create,
+    tags_collection_get,
+    tag_delete,
+)
 from schemas.user import UserCreate, UserResponse
 from schemas.tree_node import EntryCreate, EntryResponse
+from schemas.tag import TagCreate, TagResponse
 
 
 router = APIRouter(prefix="")
@@ -76,3 +82,18 @@ async def list_entries(user_id: str):
 @router.delete("/users/{user_id}/entries/{entry_id}", status_code=204)
 async def delete_entry(user_id: str, entry_id: str):
     await entry_resource_delete(user_id, entry_id)
+
+
+@router.get("/users/{user_id}/tags", response_model=list[TagResponse])
+async def list_tags(user_id: str):
+    return await tags_collection_get(user_id)
+
+
+@router.post("/users/{user_id}/tags", response_model=TagResponse, status_code=201)
+async def create_tag(user_id: str, tag: TagCreate):
+    return await tag_create(user_id, tag.name)
+
+
+@router.delete("/users/{user_id}/tags/{tag_id}", status_code=204)
+async def delete_tag(user_id: str, tag_id: str):
+    await tag_delete(user_id, tag_id)

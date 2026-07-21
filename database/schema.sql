@@ -10,6 +10,14 @@ CREATE TABLE trees(
   user_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- user_id NULL means a preset tag available to everyone; set means a
+-- custom tag owned by that user
+CREATE TABLE tags (
+  id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name    TEXT NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- one row per node on the tree; tag distinguishes the three kinds ('root' | 'milestone' | 'leaf')
 CREATE TABLE entries(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,7 +28,9 @@ CREATE TABLE entries(
   tag TEXT,
   category TEXT,
   is_praise BOOLEAN NOT NULL DEFAULT false,
-  is_encouragement BOOLEAN NOT NULL DEFAULT false
+  is_encouragement BOOLEAN NOT NULL DEFAULT false,
+  is_hearted BOOLEAN NOT NULL DEFAULT false,
+  tag_id UUID REFERENCES tags(id)
 );
 
 CREATE TABLE entries_verses (
@@ -46,3 +56,14 @@ CREATE TABLE entries_media (
   url        TEXT,
   label      TEXT
 );
+
+INSERT INTO tags (name, user_id) VALUES
+  ('Salvation', NULL),
+  ('Baptism', NULL),
+  ('Answered Prayer', NULL),
+  ('Healing', NULL),
+  ('Breakthrough', NULL),
+  ('Trial / Struggle', NULL),
+  ('Gratitude', NULL),
+  ('Family', NULL),
+  ('Calling / Purpose', NULL);
