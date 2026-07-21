@@ -1,4 +1,6 @@
 from db import db_cursor
+from db.media import postgres_media_create_for_entry, postgres_media_get_for_entry
+from db.prayers import postgres_prayers_create_for_entry, postgres_prayers_get_for_entry
 from schemas.tree_node import EntryCreate
 
 async def postgres_entry_create(entry: EntryCreate):
@@ -20,9 +22,11 @@ async def postgres_entry_create(entry: EntryCreate):
             ),
         )
         row = await cur.fetchone()
-        row["verses"] = []
-        row["prayers"] = []
-        row["media"] = []
+
+        await postgres_prayers_create_for_entry(cur, row["id"], entry.prayers)
+        await postgres_media_create_for_entry(cur, row["id"], entry.media)
+
+        await _attach_entry_children(cur, row)
         return row
         
 async def _attach_entry_children(cur, entry: dict):
@@ -32,20 +36,9 @@ async def _attach_entry_children(cur, entry: dict):
     )
     entry["verses"] = await cur.fetchall()
 
-    await cur.execute(
-        """
-        SELECT id, entry_id, prayer_text, answered, answered_at, answer_note
-        FROM entries_prayers WHERE entry_id = %s
-        """,
-        (entry["id"],),
-    )
-    entry["prayers"] = await cur.fetchall()
+    entry["prayers"] = await postgres_prayers_get_for_entry(cur, entry["id"])
 
-    await cur.execute(
-        "SELECT id, entry_id, media_type, url, label FROM entries_media WHERE entry_id = %s",
-        (entry["id"],),
-    )
-    entry["media"] = await cur.fetchall()
+    entry["media"] = await postgres_media_get_for_entry(cur, entry["id"])
 
 
 async def postgres_entry_resource_get(user_id: str, entry_id: str):

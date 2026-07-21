@@ -2,9 +2,8 @@ from pydantic import BaseModel
 
 
 class MediaCreate(BaseModel):
-    media_type: str
     url: str | None = None
-    label: str | None = None
+    media_type: str | None = None
 
 
 class MediaResponse(BaseModel):
