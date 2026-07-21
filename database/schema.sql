@@ -15,9 +15,10 @@ CREATE TABLE entries(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tree_id UUID REFERENCES trees(id) ON DELETE CASCADE,
   heading TEXT,
-  entry_date DATE,
+  entry_date DATE NOT NULL DEFAULT CURRENT_DATE,
   body TEXT,
   tag TEXT,
+  category TEXT,
   is_praise BOOLEAN NOT NULL DEFAULT false,
   is_encouragement BOOLEAN NOT NULL DEFAULT false
 );
