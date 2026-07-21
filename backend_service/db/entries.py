@@ -1,10 +1,15 @@
 from db import db_cursor
 from db.media import postgres_media_create_for_entry, postgres_media_get_for_entry
 from db.prayers import postgres_prayers_create_for_entry, postgres_prayers_get_for_entry
+from db.trees import postgres_tree_id_for_user
 from schemas.tree_node import EntryCreate
 
 async def postgres_entry_create(entry: EntryCreate):
     async with db_cursor(commit=True) as cur:
+        tree_id = await postgres_tree_id_for_user(cur, entry.user_id)
+        if tree_id is None:
+            return None
+
         await cur.execute(
             """
             INSERT INTO entries (tree_id, heading, body, tag, category, is_praise, is_encouragement)
@@ -12,7 +17,7 @@ async def postgres_entry_create(entry: EntryCreate):
             RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement
             """,
             (
-                entry.tree_id,
+                tree_id,
                 entry.heading,
                 entry.body,
                 entry.tag,
