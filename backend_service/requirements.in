@@ -3,3 +3,5 @@ uvicorn[standard]
 supabase
 psycopg[binary]
 requests
+pytest
+pytest-asyncio

@@ -57,10 +57,16 @@ idna==3.18
     #   httpx
     #   requests
     #   yarl
+iniconfig==2.3.0
+    # via pytest
 multidict==6.7.1
     # via yarl
 packaging==26.2
-    # via deprecation
+    # via
+    #   deprecation
+    #   pytest
+pluggy==1.6.0
+    # via pytest
 postgrest==2.31.0
     # via supabase
 propcache==0.5.2
@@ -80,8 +86,16 @@ pydantic==2.13.4
     #   supabase-auth
 pydantic-core==2.46.4
     # via pydantic
+pygments==2.20.0
+    # via pytest
 pyjwt==2.13.0
     # via supabase-auth
+pytest==9.1.1
+    # via
+    #   -r requirements.in
+    #   pytest-asyncio
+pytest-asyncio==1.4.0
+    # via -r requirements.in
 python-dotenv==1.2.2
     # via uvicorn
 pyyaml==6.0.3

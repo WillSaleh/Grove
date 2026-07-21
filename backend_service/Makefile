@@ -11,9 +11,19 @@ help:
 	@make _help-default
 	@echo "make run"
 	@echo "    Run FastAPI app with uvicorn"
+	@echo "make test"
+	@echo "    Run API integration tests"
+	@echo "make migrate"
+	@echo "    Apply pending database migrations"
 
 run:
 	uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+test:
+	pytest tests/ -v
+
+migrate:
+	../database/migrate.sh
 
 venv: _venv-default
 	uv pip install --index-url https://pypi.thewardro.be/simple -r requirements.txt --python .venv/bin/python
