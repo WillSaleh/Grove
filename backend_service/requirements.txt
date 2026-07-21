@@ -15,8 +15,11 @@ certifi==2026.6.17
     # via
     #   httpcore
     #   httpx
+    #   requests
 cffi==2.1.0
     # via cryptography
+charset-normalizer==3.4.9
+    # via requests
 click==8.4.2
     # via uvicorn
 cryptography==49.0.0
@@ -52,6 +55,7 @@ idna==3.18
     # via
     #   anyio
     #   httpx
+    #   requests
     #   yarl
 multidict==6.7.1
     # via yarl
@@ -84,6 +88,8 @@ pyyaml==6.0.3
     # via uvicorn
 realtime==2.31.0
     # via supabase
+requests==2.34.2
+    # via -r requirements.in
 starlette==1.3.1
     # via fastapi
 storage3==2.31.0
@@ -107,6 +113,8 @@ typing-inspection==0.4.2
     # via
     #   fastapi
     #   pydantic
+urllib3==2.7.0
+    # via requests
 uvicorn==0.51.0
     # via -r requirements.in
 uvloop==0.22.1
