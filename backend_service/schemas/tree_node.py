@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from schemas.media import MediaResponse, MediaCreate
 from schemas.prayer import PrayerResponse, PrayerCreate
+from schemas.tag import TagResponse
 from schemas.verse import VerseResponse, VerseCreate
 
 
@@ -16,9 +17,11 @@ class EntryCreate(BaseModel):
     category: str | None = None
     is_praise: bool = False
     is_encouragement: bool = False
+    is_hearted: bool = False
     verses: list[VerseCreate] = []
     prayers: list[PrayerCreate] = []
     media: list[MediaCreate] = []
+    tag_id: str | None = None
 
 
 class EntryResponse(BaseModel):
@@ -31,6 +34,8 @@ class EntryResponse(BaseModel):
     entry_date: date | None = None
     is_praise: bool = False
     is_encouragement: bool = False
+    is_hearted: bool = False
     verses: list[VerseResponse] = []
     prayers: list[PrayerResponse] = []
     media: list[MediaResponse] = []
+    entry_tag: TagResponse | None = None
