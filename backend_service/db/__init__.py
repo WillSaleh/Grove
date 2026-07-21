@@ -4,10 +4,15 @@ from contextlib import asynccontextmanager
 import psycopg
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
+from psycopg.types.string import TextLoader
 
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
+
+# Response schemas declare UUID columns as `str`; load them as plain
+# strings instead of uuid.UUID so they pass FastAPI response validation.
+psycopg.adapters.register_loader("uuid", TextLoader)
 
 
 async def get_connection() -> psycopg.AsyncConnection:
