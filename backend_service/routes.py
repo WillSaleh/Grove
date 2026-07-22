@@ -12,6 +12,7 @@ from handlers.entries import (
     entry_resource_get,
     entry_collection_get,
     entry_resource_delete,
+    entry_resource_set_hearted,
 )
 from handlers.tags import (
     tag_create,
@@ -85,6 +86,14 @@ async def list_entries(user_id: str):
 @router.delete("/users/{user_id}/entries/{entry_id}", status_code=204)
 async def delete_entry(user_id: str, entry_id: str):
     await entry_resource_delete(user_id, entry_id)
+
+
+@router.put("/users/{user_id}/entries/{entry_id}/heart", response_model=EntryResponse)
+async def set_entry_hearted(user_id: str, entry_id: str, hearted: bool):
+    entry = await entry_resource_set_hearted(user_id, entry_id, hearted)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
 
 
 @router.get("/users/{user_id}/tags", response_model=list[TagResponse])

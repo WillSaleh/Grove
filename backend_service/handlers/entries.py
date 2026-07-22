@@ -3,6 +3,7 @@ from db.entries import (
     postgres_entry_resource_get,
     postgres_entry_collection_get,
     postgres_entry_resource_delete,
+    postgres_entry_set_hearted,
 )
 
 
@@ -18,3 +19,6 @@ async def entry_collection_get(user_id: str):
 
 async def entry_resource_delete(user_id: str, entry_id: str):
     return await postgres_entry_resource_delete(user_id, entry_id)
+
+async def entry_resource_set_hearted(user_id: str, entry_id: str, hearted: bool):
+    return await postgres_entry_set_hearted(user_id, entry_id, hearted)
