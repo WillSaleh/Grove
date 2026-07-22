@@ -1,4 +1,4 @@
-from schemas.tree_node import EntryCreate, PrayerEntryCreate, VerseEntryCreate
+from schemas.tree_node import EntryCreate, EntryUpdate, PrayerEntryCreate, VerseEntryCreate
 
 from db.entries import (
     postgres_entry_create,
@@ -6,6 +6,7 @@ from db.entries import (
     postgres_entry_collection_get,
     postgres_entry_resource_delete,
     postgres_entry_set_hearted,
+    postgres_entry_update,
     postgres_prayer_entry_create,
     postgres_verse_entry_create,
 )
@@ -26,6 +27,9 @@ async def entry_resource_delete(user_id: str, entry_id: str):
 
 async def entry_resource_set_hearted(user_id: str, entry_id: str, hearted: bool):
     return await postgres_entry_set_hearted(user_id, entry_id, hearted)
+
+async def entry_resource_update(user_id: str, entry_id: str, updates: EntryUpdate):
+    return await postgres_entry_update(user_id, entry_id, updates)
 
 async def verse_entry_resource_create(verse_entry: VerseEntryCreate):
     return await postgres_verse_entry_create(verse_entry)

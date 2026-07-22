@@ -2,7 +2,7 @@
 
 REST API reference for front-end clients integrating with the Grove backend.
 
-Grove models a user's spiritual journey as a **tree**: each user owns one tree made up of **entries** (nodes). Structural entries (`root`, `milestone`, `leaf`) use the full entry shape with heading, body, and optional nested children. Standalone **verse** and **prayer** entries use slimmer dedicated response types. Users can also create custom **tags** to label entries.
+Grove models a user's spiritual journey as a **tree**: each user owns one tree made up of **entries** (nodes). Structural entries (`root`, `milestone`, `reflection`, `gratitude`) use the full entry shape with heading, body, and optional nested children. Standalone **verse** and **prayer** entries use slimmer dedicated response types. Users can also create custom **tags** to label entries.
 
 ---
 
@@ -58,7 +58,7 @@ make tunnel   # terminal 2
 User (optional bio)
  └── Tree (one per user, created automatically)
       └── Entry[] (ordered by entry_date; shape depends on tag)
-           ├── EntryResponse (root | milestone | leaf)
+           ├── EntryResponse (root | milestone | reflection | gratitude)
            │    ├── verses[]
            │    ├── prayers[]
            │    ├── media[]
@@ -77,13 +77,14 @@ Each entry has a **node type** stored in the `tag` field. This is separate from 
 |-------|---------|----------------|
 | `"root"` | Origin / foundation moment on the tree | `EntryResponse` |
 | `"milestone"` | Major milestone | `EntryResponse` |
-| `"leaf"` | Smaller moment or reflection | `EntryResponse` |
+| `"reflection"` | Smaller/daily moment | `EntryResponse` |
+| `"gratitude"` | A moment of giving thanks | `EntryResponse` |
 | `"verse"` | Standalone verse on the timeline | `VerseEntryResponse` |
 | `"prayer"` | Standalone prayer on the timeline | `PrayerEntryResponse` |
 
-Structural entries (`root`, `milestone`, `leaf`) can still include nested `verses[]`, `prayers[]`, and `media[]`. Standalone verse and prayer entries return a slim shape with a single `verse` or `prayer` object instead of the full entry fields.
+Structural entries (`root`, `milestone`, `reflection`, `gratitude`) can still include nested `verses[]`, `prayers[]`, and `media[]`. Standalone verse and prayer entries return a slim shape with a single `verse` or `prayer` object instead of the full entry fields.
 
-Use `POST /entries/verse` or `POST /entries/prayer` for the dedicated create endpoints, or `POST /entries` with `tag: "verse"` / `tag: "prayer"` — all paths persist the same way and return the matching response shape.
+Use `POST /entries/verse` or `POST /entries/prayer` to create a standalone verse/prayer entry - `POST /entries` no longer accepts `tag: "verse"`/`"prayer"` (rejected with a `422`); those tags only exist via the dedicated endpoints now.
 
 Media does not have a standalone node type. Attach media to any entry via `media[]` on create or `POST /users/{user_id}/entries/{entry_id}/media`.
 
@@ -218,7 +219,7 @@ Entries are created at the top level (`POST /entries`, `POST /entries/verse`, or
 
 List, get, heart, and user-tree endpoints return one of three shapes depending on the entry's `tag`:
 
-- **`EntryResponse`** — `root`, `milestone`, `leaf`
+- **`EntryResponse`** — `root`, `milestone`, `reflection`, `gratitude`
 - **`VerseEntryResponse`** — `verse`
 - **`PrayerEntryResponse`** — `prayer`
 
@@ -226,7 +227,7 @@ Discriminate in client code by checking `tag` and which top-level field is prese
 
 #### `POST /entries`
 
-Create a new entry on a user's tree. Returns the full `EntryResponse` for structural tags, or the slim standalone shape when `tag` is `"verse"` or `"prayer"`.
+Create a new structural entry (`root`, `milestone`, `reflection`, or `gratitude`) on a user's tree. `tag: "verse"`/`"prayer"` are rejected here with a `422` - use `POST /entries/verse`/`POST /entries/prayer` instead to create those.
 
 **Request body** — `EntryCreate`
 
@@ -235,20 +236,21 @@ Create a new entry on a user's tree. Returns the full `EntryResponse` for struct
 | `user_id` | string (UUID) | yes | — | Owner of the tree |
 | `heading` | string | yes | — | Entry title |
 | `body` | string | yes | — | Entry content |
-| `tag` | `"root"` \| `"milestone"` \| `"leaf"` \| `"verse"` \| `"prayer"` | yes | — | Node type on the tree |
+| `tag` | `"root"` \| `"milestone"` \| `"reflection"` \| `"gratitude"` | yes | — | Node type on the tree |
 | `category` | string \| null | no | `null` | Free-text category |
 | `is_praise` | boolean | no | `false` | Praise flag |
 | `is_encouragement` | boolean | no | `false` | Encouragement flag |
 | `is_hearted` | boolean | no | `false` | Initial hearted state (see `PUT .../heart` to change later) |
 | `tag_id` | string (UUID) \| null | no | `null` | ID of a Tag to associate |
-| `verses` | `VerseCreate[]` | no | `[]` | Verses to attach (see note below on `verse_text`) |
-| `prayers` | `PrayerCreate[]` | no | `[]` | Prayers to attach |
+| `verses` | `VerseCreate[]` | no | `[]` | Verses to attach as supporting content (see note below on `verse_text`) |
+| `prayers` | `PrayerCreate[]` | no | `[]` | Prayers to attach as supporting content |
 | `media` | `MediaCreate[]` | no | `[]` | Media attachments |
 
-> **Verse text is auto-fetched.** For each verse, the backend calls the Bible API using `verse_ref` and fills in `verse_text` itself — do not send `verse_text`. If `verse_ref` doesn't match the expected format (e.g. `"GEN 3:6"` or `"GEN 3:6 NIV"`) or isn't a real reference, the entry is still created successfully (`201`) but that verse comes back with `verse_text: null` and no error at all — this is a known gap (should be a clean `422` instead), being tightened up.
+> **Verse text is auto-fetched.** For each nested verse, the backend calls the Bible API using `verse_ref` and fills in `verse_text` itself — do not send `verse_text`. If `verse_ref` doesn't match the expected format (e.g. `"GEN 3:6"` or `"GEN 3:6 NIV"`) or isn't a real reference, the entry is still created successfully (`201`) but that verse comes back with `verse_text: null` and no error at all — this is a known gap (should be a clean `422` instead), being tightened up.
 
-**Response `201`** — `EntryResponse` \| `VerseEntryResponse` \| `PrayerEntryResponse`  
+**Response `201`** — `EntryResponse`  
 **Response `404`** — `{ "detail": "User or tree not found" }`  
+**Response `422`** — validation error, including `tag: "verse"`/`"prayer"` (use the dedicated endpoints instead)  
 **Response `422`** — validation error (invalid body)
 
 **Example**
@@ -521,7 +523,7 @@ Content-Type: application/json
 
 ### `EntryResponse`
 
-Returned for structural entries (`tag`: `root`, `milestone`, or `leaf`).
+Returned for structural entries (`tag`: `root`, `milestone`, `reflection`, or `gratitude`).
 
 ```json
 {
@@ -529,7 +531,7 @@ Returned for structural entries (`tag`: `root`, `milestone`, or `leaf`).
   "tree_id": "string",
   "heading": "string | null",
   "body": "string | null",
-  "tag": "root | milestone | leaf | null",
+  "tag": "root | milestone | reflection | gratitude | null",
   "category": "string | null",
   "entry_date": "2026-07-21",
   "is_praise": false,
@@ -685,7 +687,7 @@ FastAPI returns a structured validation payload:
     {
       "type": "literal_error",
       "loc": ["body", "tag"],
-      "msg": "Input should be 'root', 'milestone', 'leaf', 'verse' or 'prayer'",
+      "msg": "Input should be 'root', 'milestone', 'reflection' or 'gratitude'",
       "input": "branch"
     }
   ]
@@ -716,7 +718,7 @@ FastAPI returns a structured validation payload:
 
 ### Naming: `tag` vs `entry_tag`
 
-The API uses `tag` for the **tree node type** (`root`, `milestone`, `leaf`, `verse`, `prayer`). The optional category label from the tags table is returned as `entry_tag`. When creating an entry, send the tag's UUID in `tag_id`.
+The API uses `tag` for the **tree node type** (`root`, `milestone`, `reflection`, `gratitude`, `verse`, `prayer`). The optional category label from the tags table is returned as `entry_tag`. When creating an entry, send the tag's UUID in `tag_id`.
 
 ### Standalone entry shapes
 
@@ -744,7 +746,7 @@ There are no `PATCH` or `PUT` routes. To change data today, delete and recreate,
 
 ### Create support
 
-On `POST /entries`, **verses, prayers, media, and `is_hearted` are all persisted**. Standalone `tag: "verse"` and `tag: "prayer"` entries return the slim response shapes even when created through `POST /entries`.
+On `POST /entries`, **verses, prayers, media, and `is_hearted` are all persisted** as supporting content on structural entries (`root`/`milestone`/`reflection`/`gratitude`). `POST /entries` no longer accepts `tag: "verse"`/`"prayer"` at all - use the dedicated endpoints below instead.
 
 Dedicated create endpoints:
 
@@ -876,10 +878,11 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 ### Recent changes
 
 - **Public dev tunnel** — `make run-public` or `make tunnel` exposes local `:8000` on a free temporary `https://….trycloudflare.com` URL (see Quick start).
+- **Entry types renamed/expanded** — `leaf` is now `reflection`, and `gratitude` is a new structural tag. `tag` is now `"root" | "milestone" | "reflection" | "gratitude" | "verse" | "prayer"`.
+- **Redundant verse/prayer path retired** — `POST /entries` no longer accepts `tag: "verse"`/`"prayer"` at all (rejected with a standard `422`); `POST /entries/verse`/`POST /entries/prayer` are now the only way to create those.
 - **Standalone verse entries** — `POST /entries/verse` creates a verse-only timeline item. Responses use `VerseEntryResponse` with a singular `verse` field (no `heading`/`body`/`verses[]`).
 - **Standalone prayer entries** — `POST /entries/prayer` creates a prayer-only timeline item. Responses use `PrayerEntryResponse` with a singular `prayer` field (no `heading`/`body`/`prayers[]`).
 - **Mixed entry lists** — `GET /users/{user_id}/entries`, `GET /users/{id}`, and heart responses return `EntryResponse`, `VerseEntryResponse`, or `PrayerEntryResponse` depending on each entry's `tag`.
-- **Entry node types** — `tag` accepts `"verse"` and `"prayer"` for standalone timeline entries.
 - **Verses persisted** — `verses` on `POST /entries` now actually saves to the database, auto-fetching `verse_text` from `verse_ref` via the Bible API.
 - **Hearting** — `is_hearted` is now actually read/written (previously always showed `false` regardless of the real value). `PUT /users/{user_id}/entries/{entry_id}/heart?hearted=true|false` toggles it after creation.
 - **User bio** — `bio` field on users, settable via `PUT /users/{id}/bio`, for a testimony write-up separate from timeline entries.

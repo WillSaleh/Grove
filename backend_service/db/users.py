@@ -68,7 +68,7 @@ async def postgres_user_resource_put(user: UserCreate):
             VALUES (%s, %s, %s)
             RETURNING id, username, display_name, walking_since, bio
             """,
-            (user.username, user.display_name, date.today()),
+            (user.username, user.display_name, user.walking_since or date.today()),
         )
         row = await cur.fetchone()
         tree = await postgres_tree_create_for_user(cur, row["id"])

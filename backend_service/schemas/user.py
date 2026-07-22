@@ -8,6 +8,7 @@ from schemas.tree import TreeResponse
 class UserCreate(BaseModel):
     username: str
     display_name: str
+    walking_since: date | None = None
 
 
 class UserResponse(BaseModel):

@@ -13,7 +13,8 @@ class EntryCreate(BaseModel):
     user_id: str
     heading: str
     body: str
-    tag: Literal["root", "milestone", "leaf"]
+    tag: Literal["root", "milestone", "reflection", "gratitude"]
+    entry_date: date | None = None
     category: str | None = None
     is_praise: bool = False
     is_encouragement: bool = False
@@ -29,7 +30,7 @@ class EntryResponse(BaseModel):
     tree_id: str
     heading: str | None = None
     body: str | None = None
-    tag: Literal["root", "milestone", "leaf"] | None = None
+    tag: Literal["root", "milestone", "reflection", "gratitude"] | None = None
     category: str | None = None
     entry_date: date | None = None
     is_praise: bool = False
@@ -40,9 +41,20 @@ class EntryResponse(BaseModel):
     media: list[MediaResponse] = []
     entry_tag: TagResponse | None = None
 
+class EntryUpdate(BaseModel):
+    heading: str | None = None
+    body: str | None = None
+    category: str | None = None
+    entry_date: date | None = None
+    is_praise: bool | None = None
+    is_encouragement: bool | None = None
+    tag_id: str | None = None
+
+
 class VerseEntryCreate(BaseModel):
     user_id: str
     verse: VerseCreate
+    entry_date: date | None = None
 
 class VerseEntryResponse(BaseModel):
     id: str
@@ -56,6 +68,7 @@ class VerseEntryResponse(BaseModel):
 class PrayerEntryCreate(BaseModel):
     user_id: str
     prayer: PrayerCreate
+    entry_date: date | None = None
 
 
 class PrayerEntryResponse(BaseModel):

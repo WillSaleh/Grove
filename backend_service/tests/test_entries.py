@@ -8,12 +8,11 @@ from tests.conftest import (
 )
 
 
-async def _create_entry(client, user_id: str, tag: str = "leaf") -> dict:
+async def _create_entry(client, user_id: str, tag: str = "milestone") -> dict:
     return await create_entry(
         client,
         user_id,
         tag=tag,
-        category="reflection",
         is_praise=True,
         is_encouragement=False,
         prayers=[{"prayer_text": "Please guide me"}],
@@ -27,7 +26,7 @@ async def test_create_entry_returns_entry_with_children(client, test_user):
     assert_entry_response(entry)
     assert entry["heading"] == "Test heading"
     assert entry["body"] == "Test body"
-    assert entry["tag"] == "leaf"
+    assert entry["tag"] == "milestone"
     assert entry["tree_id"] == test_user["tree"]["id"]
     assert len(entry["prayers"]) == 1
     assert entry["prayers"][0]["prayer_text"] == "Please guide me"
@@ -70,7 +69,7 @@ async def test_list_entries_includes_created_entry(client, test_user):
 
 
 async def test_list_entries_returns_mixed_entry_shapes(client, test_user):
-    leaf = await _create_entry(client, test_user["id"], tag="leaf")
+    reflection = await _create_entry(client, test_user["id"], tag="reflection")
     verse = await create_verse_entry(client, test_user["id"])
     prayer = await create_prayer_entry(client, test_user["id"])
 
@@ -78,7 +77,7 @@ async def test_list_entries_returns_mixed_entry_shapes(client, test_user):
 
     assert response.status_code == 200
     entries = {entry["id"]: entry for entry in response.json()}
-    assert_entry_response(entries[leaf["id"]])
+    assert_entry_response(entries[reflection["id"]])
     assert_verse_entry_response(entries[verse["id"]])
     assert_prayer_entry_response(entries[prayer["id"]])
 
@@ -90,7 +89,7 @@ async def test_create_entry_for_unknown_user_returns_404(client):
             "user_id": "00000000-0000-0000-0000-000000000000",
             "heading": "Missing user",
             "body": "Should not persist",
-            "tag": "leaf",
+            "tag": "milestone",
         },
     )
 

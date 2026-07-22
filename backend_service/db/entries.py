@@ -1,10 +1,12 @@
+from datetime import date
+
 from db import db_cursor
 from db.media import postgres_media_create_for_entry, postgres_media_get_for_entry
 from db.prayers import postgres_prayers_create_for_entry, postgres_prayers_get_for_entry
 from db.tags import postgres_tag_get_by_id
 from db.trees import postgres_tree_id_for_user
 from db.verses import postgres_verses_create_for_entry, postgres_verses_get_for_entry
-from schemas.tree_node import EntryCreate, PrayerEntryCreate, VerseEntryCreate
+from schemas.tree_node import EntryCreate, EntryUpdate, PrayerEntryCreate, VerseEntryCreate
 
 _STANDALONE_ENTRY_FIELDS = (
     "heading",
@@ -49,8 +51,8 @@ async def postgres_entry_create(entry: EntryCreate):
 
         await cur.execute(
             """
-            INSERT INTO entries (tree_id, heading, body, tag, category, is_praise, is_encouragement, is_hearted, tag_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO entries (tree_id, heading, body, tag, entry_date, category, is_praise, is_encouragement, is_hearted, tag_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement, is_hearted, tag_id
             """,
             (
@@ -58,6 +60,7 @@ async def postgres_entry_create(entry: EntryCreate):
                 entry.heading,
                 entry.body,
                 entry.tag,
+                entry.entry_date or date.today(),
                 entry.category,
                 entry.is_praise,
                 entry.is_encouragement,
@@ -83,11 +86,11 @@ async def postgres_verse_entry_create(verse_entry: VerseEntryCreate):
 
         await cur.execute(
             """
-            INSERT INTO entries (tree_id, tag)
-            VALUES (%s, 'verse')
+            INSERT INTO entries (tree_id, tag, entry_date)
+            VALUES (%s, 'verse', %s)
             RETURNING id, tree_id, tag, entry_date, is_hearted
             """,
-            (tree_id,),
+            (tree_id, verse_entry.entry_date or date.today()),
         )
         row = await cur.fetchone()
 
@@ -105,11 +108,11 @@ async def postgres_prayer_entry_create(prayer_entry: PrayerEntryCreate):
 
         await cur.execute(
             """
-            INSERT INTO entries (tree_id, tag)
-            VALUES (%s, 'prayer')
+            INSERT INTO entries (tree_id, tag, entry_date)
+            VALUES (%s, 'prayer', %s)
             RETURNING id, tree_id, tag, entry_date, is_hearted
             """,
-            (tree_id,),
+            (tree_id, prayer_entry.entry_date or date.today()),
         )
         row = await cur.fetchone()
 
@@ -140,6 +143,31 @@ async def postgres_entry_set_hearted(user_id: str, entry_id: str, hearted: bool)
             RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement, is_hearted, tag_id
             """,
             (hearted, entry_id, user_id),
+        )
+        row = await cur.fetchone()
+        if row is None:
+            return None
+
+        await _attach_entry_children(cur, row)
+        return _format_entry_response(row)
+
+
+async def postgres_entry_update(user_id: str, entry_id: str, updates: EntryUpdate):
+    fields = updates.model_dump(exclude_unset=True)
+    if not fields:
+        return await postgres_entry_resource_get(user_id, entry_id)
+
+    set_clause = ", ".join(f"{field} = %s" for field in fields)
+
+    async with db_cursor(commit=True) as cur:
+        await cur.execute(
+            f"""
+            UPDATE entries
+            SET {set_clause}
+            WHERE id = %s AND tree_id = (SELECT id FROM trees WHERE user_id = %s)
+            RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement, is_hearted, tag_id
+            """,
+            (*fields.values(), entry_id, user_id),
         )
         row = await cur.fetchone()
         if row is None:

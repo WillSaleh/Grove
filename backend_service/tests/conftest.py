@@ -125,7 +125,7 @@ async def create_entry(
     client: AsyncClient,
     user_id: str,
     *,
-    tag: str = "leaf",
+    tag: str = "reflection",
     **extra_fields,
 ) -> dict:
     payload = {
