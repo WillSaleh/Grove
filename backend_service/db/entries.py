@@ -4,7 +4,7 @@ from db.prayers import postgres_prayers_create_for_entry, postgres_prayers_get_f
 from db.tags import postgres_tag_get_by_id
 from db.trees import postgres_tree_id_for_user
 from db.verses import postgres_verses_create_for_entry, postgres_verses_get_for_entry
-from schemas.tree_node import EntryCreate
+from schemas.tree_node import EntryCreate, PrayerEntryCreate, VerseEntryCreate
 
 _STANDALONE_ENTRY_FIELDS = (
     "heading",
@@ -73,6 +73,51 @@ async def postgres_entry_create(entry: EntryCreate):
 
         await _attach_entry_children(cur, row)
         return _format_entry_response(row)
+
+
+async def postgres_verse_entry_create(verse_entry: VerseEntryCreate):
+    async with db_cursor(commit=True) as cur:
+        tree_id = await postgres_tree_id_for_user(cur, verse_entry.user_id)
+        if tree_id is None:
+            return None
+
+        await cur.execute(
+            """
+            INSERT INTO entries (tree_id, tag)
+            VALUES (%s, 'verse')
+            RETURNING id, tree_id, tag, entry_date, is_hearted
+            """,
+            (tree_id,),
+        )
+        row = await cur.fetchone()
+
+        await postgres_verses_create_for_entry(cur, row["id"], [verse_entry.verse])
+        verses = await postgres_verses_get_for_entry(cur, row["id"])
+        row["verse"] = verses[0]
+        return row
+
+
+async def postgres_prayer_entry_create(prayer_entry: PrayerEntryCreate):
+    async with db_cursor(commit=True) as cur:
+        tree_id = await postgres_tree_id_for_user(cur, prayer_entry.user_id)
+        if tree_id is None:
+            return None
+
+        await cur.execute(
+            """
+            INSERT INTO entries (tree_id, tag)
+            VALUES (%s, 'prayer')
+            RETURNING id, tree_id, tag, entry_date, is_hearted
+            """,
+            (tree_id,),
+        )
+        row = await cur.fetchone()
+
+        await postgres_prayers_create_for_entry(cur, row["id"], [prayer_entry.prayer])
+        prayers = await postgres_prayers_get_for_entry(cur, row["id"])
+        row["prayer"] = prayers[0]
+        return row
+
 
 async def _attach_entry_children(cur, entry: dict):
     entry["verses"] = await postgres_verses_get_for_entry(cur, entry["id"])

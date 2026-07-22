@@ -6,6 +6,8 @@ from db.entries import (
     postgres_entry_collection_get,
     postgres_entry_resource_delete,
     postgres_entry_set_hearted,
+    postgres_prayer_entry_create,
+    postgres_verse_entry_create,
 )
 
 
@@ -26,22 +28,8 @@ async def entry_resource_set_hearted(user_id: str, entry_id: str, hearted: bool)
     return await postgres_entry_set_hearted(user_id, entry_id, hearted)
 
 async def verse_entry_resource_create(verse_entry: VerseEntryCreate):
-    entry = EntryCreate(
-        user_id=verse_entry.user_id,
-        heading="",
-        body="",
-        tag="verse",
-        verses=[verse_entry.verse],
-    )
-    return await postgres_entry_create(entry)
+    return await postgres_verse_entry_create(verse_entry)
 
 
 async def prayer_entry_resource_create(prayer_entry: PrayerEntryCreate):
-    entry = EntryCreate(
-        user_id=prayer_entry.user_id,
-        heading="",
-        body="",
-        tag="prayer",
-        prayers=[prayer_entry.prayer],
-    )
-    return await postgres_entry_create(entry)
+    return await postgres_prayer_entry_create(prayer_entry)
