@@ -3,6 +3,7 @@ from db.media import postgres_media_create_for_entry, postgres_media_get_for_ent
 from db.prayers import postgres_prayers_create_for_entry, postgres_prayers_get_for_entry
 from db.tags import postgres_tag_get_by_id
 from db.trees import postgres_tree_id_for_user
+from db.verses import postgres_verses_create_for_entry, postgres_verses_get_for_entry
 from schemas.tree_node import EntryCreate
 
 async def postgres_entry_create(entry: EntryCreate):
@@ -13,9 +14,9 @@ async def postgres_entry_create(entry: EntryCreate):
 
         await cur.execute(
             """
-            INSERT INTO entries (tree_id, heading, body, tag, category, is_praise, is_encouragement, tag_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement, tag_id
+            INSERT INTO entries (tree_id, heading, body, tag, category, is_praise, is_encouragement, is_hearted, tag_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement, is_hearted, tag_id
             """,
             (
                 tree_id,
@@ -25,11 +26,13 @@ async def postgres_entry_create(entry: EntryCreate):
                 entry.category,
                 entry.is_praise,
                 entry.is_encouragement,
+                entry.is_hearted,
                 entry.tag_id,
             ),
         )
         row = await cur.fetchone()
 
+        await postgres_verses_create_for_entry(cur, row["id"], entry.verses)
         await postgres_prayers_create_for_entry(cur, row["id"], entry.prayers)
         await postgres_media_create_for_entry(cur, row["id"], entry.media)
 
@@ -37,11 +40,7 @@ async def postgres_entry_create(entry: EntryCreate):
         return row
 
 async def _attach_entry_children(cur, entry: dict):
-    await cur.execute(
-        "SELECT id, entry_id, verse_ref, verse_text FROM entries_verses WHERE entry_id = %s",
-        (entry["id"],),
-    )
-    entry["verses"] = await cur.fetchall()
+    entry["verses"] = await postgres_verses_get_for_entry(cur, entry["id"])
 
     entry["prayers"] = await postgres_prayers_get_for_entry(cur, entry["id"])
 
@@ -51,12 +50,31 @@ async def _attach_entry_children(cur, entry: dict):
     entry["entry_tag"] = await postgres_tag_get_by_id(cur, tag_id) if tag_id else None
 
 
+async def postgres_entry_set_hearted(user_id: str, entry_id: str, hearted: bool):
+    async with db_cursor(commit=True) as cur:
+        await cur.execute(
+            """
+            UPDATE entries
+            SET is_hearted = %s
+            WHERE id = %s AND tree_id = (SELECT id FROM trees WHERE user_id = %s)
+            RETURNING id, tree_id, heading, body, tag, category, entry_date, is_praise, is_encouragement, is_hearted, tag_id
+            """,
+            (hearted, entry_id, user_id),
+        )
+        row = await cur.fetchone()
+        if row is None:
+            return None
+
+        await _attach_entry_children(cur, row)
+        return row
+
+
 async def postgres_entry_resource_get(user_id: str, entry_id: str):
     async with db_cursor() as cur:
         await cur.execute(
             """
             SELECT e.id, e.tree_id, e.heading, e.body, e.tag, e.category,
-                   e.entry_date, e.is_praise, e.is_encouragement, e.tag_id
+                   e.entry_date, e.is_praise, e.is_encouragement, e.is_hearted, e.tag_id
             FROM entries e
             JOIN trees t ON e.tree_id = t.id
             WHERE e.id = %s AND t.user_id = %s
@@ -76,7 +94,7 @@ async def postgres_entry_collection_get(user_id: str):
         await cur.execute(
             """
             SELECT e.id, e.tree_id, e.heading, e.body, e.tag, e.category,
-                   e.entry_date, e.is_praise, e.is_encouragement, e.tag_id
+                   e.entry_date, e.is_praise, e.is_encouragement, e.is_hearted, e.tag_id
             FROM entries e
             JOIN trees t ON e.tree_id = t.id
             WHERE t.user_id = %s
