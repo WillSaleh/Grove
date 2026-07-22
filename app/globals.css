@@ -1,27 +1,200 @@
-/* Global styles + the warm palette. Define every color token ONCE in the @theme block below; never hard-code hex in components. */
+/* Global styles + the warm "Grove" palette. Every color token is defined ONCE here in the @theme
+   block and consumed as a Tailwind class (bg-parchment, text-ink, …); never hard-code hex in a component.
+   Data-driven, per-entry-type colors are the one exception — those come from ENTRY_TYPES in lib/entryTypes.ts
+   and are applied as inline styles, because a 5-type × N-state color matrix is the wrong thing to force into classes. */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-parchment: #f8f2ea;
+  --color-parchment-deep: #f4ede4;
+  --color-ink: #32403f;
+  --color-brand: #4a5759;
+  --color-brand-dark: #374144;
+  --color-fern: #5c7a5e;
+  --color-fern-dark: #4e6950;
+  --color-muted: #67736e;
+  --color-muted-2: #828d86;
+  --color-faint: #b0b0b5;
+  --color-body-text: #3a4746;
+  --color-line: #e4ddd0;
+  --color-line-2: #ece5d9;
+  --color-line-3: #d7cfc1;
+  --color-pill: #e7e0d3;
+
+  --color-type-milestone: #4a5759;
+  --color-type-verse: #a5634a;
+  --color-type-gratitude: #ab5872;
+  --color-type-prayer: #8a6b32;
+  --color-type-reflection: #527257;
+
+  --font-sans: var(--font-inter), -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-display: var(--font-inter), -apple-system, "SF Pro Display", system-ui, sans-serif;
+  --font-logo: var(--font-sora), -apple-system, system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  margin: 0;
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
+}
+
+textarea {
+  resize: vertical;
+}
+
+::selection {
+  background: rgba(74, 87, 89, 0.18);
+}
+
+:focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-brand) !important;
+  box-shadow: 0 0 0 3px rgba(74, 87, 89, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Horizontal timeline scroll track */
+.gr-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.gr-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gr-scroll::-webkit-scrollbar-thumb {
+  background: rgba(74, 87, 89, 0.22);
+  border-radius: 999px;
+  border: 3px solid var(--color-parchment-deep);
+}
+
+.gr-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 87, 89, 0.4);
+}
+
+/* Compact timeline node: lift above neighbors and reveal its title pill on hover */
+.gr-card:hover {
+  z-index: 30 !important;
+}
+
+.gr-titlepill {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-ink);
+  transition:
+    max-width 0.34s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.26s ease,
+    padding 0.34s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.gr-card:hover .gr-titlepill {
+  max-width: 240px;
+  opacity: 1;
+  padding: 0 12px 0 4px;
+}
+
+/* Expanded (month-mode) card lifts on hover. !important beats the inline base transform. */
+.gr-card-lift:hover {
+  transform: translateX(-50%) translateY(-6px) !important;
+}
+
+/* Animations ported from the Timeline_V2 design */
+@keyframes gr-rise {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes gr-risec {
+  from { opacity: 0; transform: translate(-23px, 14px); }
+  to { opacity: 1; transform: translate(-23px, 0); }
+}
+@keyframes gr-chip {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gr-slidein {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes gr-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gr-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gr-dissolve {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gr-drawer {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gr-toast {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes gr-petal {
+  0% { opacity: 0; transform: translateY(2px) scaleY(0.2); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px) scaleY(1); }
+}
+@keyframes gr-glow {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
+}
+@keyframes gr-burst {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.3); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(3.2); }
+}
+@keyframes gr-zoomin {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes gr-zoomout {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
 }
