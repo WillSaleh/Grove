@@ -40,6 +40,7 @@ from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
 from schemas.prayer import PrayerAnsweredUpdate, PrayerResponse
 from storage import save_upload
 
+from scripts.generate_VOTD import get_votd
 
 router = APIRouter(prefix="")
 
@@ -187,3 +188,7 @@ async def set_prayer_answered(user_id: str, prayer_id: str, body: PrayerAnswered
     if prayer is None:
         raise HTTPException(status_code=404, detail="Prayer not found")
     return prayer
+
+@router.get("/verse_of_the_day")
+async def get_verse_of_the_day():
+    return await get_votd()
