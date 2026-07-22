@@ -13,7 +13,7 @@ class EntryCreate(BaseModel):
     user_id: str
     heading: str
     body: str
-    tag: Literal["root", "milestone", "leaf"]
+    tag: Literal["root", "milestone", "leaf", "verse", "prayer"]
     category: str | None = None
     is_praise: bool = False
     is_encouragement: bool = False
@@ -29,7 +29,7 @@ class EntryResponse(BaseModel):
     tree_id: str
     heading: str | None = None
     body: str | None = None
-    tag: Literal["root", "milestone", "leaf"] | None = None
+    tag: Literal["root", "milestone", "leaf", "verse", "prayer"] | None = None
     category: str | None = None
     entry_date: date | None = None
     is_praise: bool = False

@@ -12,3 +12,7 @@ class MediaResponse(BaseModel):
     media_type: str
     url: str | None = None
     label: str | None = None
+
+
+class MediaUploadResponse(BaseModel):
+    url: str
