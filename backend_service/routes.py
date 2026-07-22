@@ -83,7 +83,7 @@ async def set_user_bio(id: str, body: BioUpdate):
 EntryOrStandaloneResponse = EntryResponse | VerseEntryResponse | PrayerEntryResponse
 
 
-@router.post("/entries", response_model=EntryOrStandaloneResponse, status_code=201)
+@router.post("/entries", response_model=EntryResponse, status_code=201)
 async def create_entry(entry: EntryCreate):
     created = await entry_resource_create(entry)
     if created is None:

@@ -112,33 +112,34 @@ async def test_delete_entry_removes_entry(client, test_user):
     assert get_response.status_code == 404
 
 
-async def test_create_prayer_tagged_entry_returns_prayer_entry_response(client, test_user):
-    entry = await create_entry(
-        client,
-        test_user["id"],
-        tag="prayer",
-        heading="Standalone prayer",
-        body="Prayer body",
-        prayers=[{"prayer_text": "Lord, hear my prayer"}],
+async def test_create_entry_rejects_prayer_tag(client, test_user):
+    response = await client.post(
+        "/entries",
+        json={
+            "user_id": test_user["id"],
+            "heading": "Standalone prayer",
+            "body": "Prayer body",
+            "tag": "prayer",
+            "prayers": [{"prayer_text": "Lord, hear my prayer"}],
+        },
     )
 
-    assert_prayer_entry_response(entry)
-    assert entry["prayer"]["prayer_text"] == "Lord, hear my prayer"
+    assert response.status_code == 422
 
 
-async def test_create_verse_tagged_entry_returns_verse_entry_response(client, test_user):
-    entry = await create_entry(
-        client,
-        test_user["id"],
-        tag="verse",
-        heading="Standalone verse",
-        body="Verse body",
-        verses=[{"verse_ref": "JHN 3:16 NIV"}],
+async def test_create_entry_rejects_verse_tag(client, test_user):
+    response = await client.post(
+        "/entries",
+        json={
+            "user_id": test_user["id"],
+            "heading": "Standalone verse",
+            "body": "Verse body",
+            "tag": "verse",
+            "verses": [{"verse_ref": "JHN 3:16 NIV"}],
+        },
     )
 
-    assert_verse_entry_response(entry)
-    assert entry["verse"]["verse_ref"] == "JHN 3:16 NIV"
-    assert entry["verse"]["verse_text"] == "Text for JHN 3:16 NIV"
+    assert response.status_code == 422
 
 
 async def test_create_verse_entry_endpoint_returns_verse_entry_response(client, test_user):
