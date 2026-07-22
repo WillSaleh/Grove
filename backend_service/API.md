@@ -32,7 +32,7 @@ The server listens on `0.0.0.0:8000` with hot reload enabled.
 ## Domain model
 
 ```
-User
+User (optional bio)
  └── Tree (one per user, created automatically)
       └── Entry[] (ordered by entry_date)
            ├── verses[]
@@ -156,6 +156,28 @@ Delete a user. Cascades to their tree, entries, and related data.
 
 **Response `204`** — no body
 
+#### `PUT /users/{id}/bio`
+
+Set a user's testimony/bio text. Typically written after signup, not at account creation.
+
+**Request body** — `BioUpdate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `bio` | string | yes |
+
+**Response `200`** — `UserResponse`  
+**Response `404`** — `{ "detail": "User not found" }`
+
+**Example**
+
+```http
+PUT /users/f47ac10b-58cc-4372-a567-0e02b2c3d479/bio
+Content-Type: application/json
+
+{ "bio": "God has been faithful through every season." }
+```
+
 ---
 
 ### Entries
@@ -177,11 +199,13 @@ Create a new entry on a user's tree.
 | `category` | string \| null | no | `null` | Free-text category |
 | `is_praise` | boolean | no | `false` | Praise flag |
 | `is_encouragement` | boolean | no | `false` | Encouragement flag |
-| `is_hearted` | boolean | no | `false` | Accepted in request; **not persisted yet** |
+| `is_hearted` | boolean | no | `false` | Initial hearted state (see `PUT .../heart` to change later) |
 | `tag_id` | string (UUID) \| null | no | `null` | ID of a Tag to associate |
-| `verses` | `VerseCreate[]` | no | `[]` | Accepted in request; **not persisted yet** |
+| `verses` | `VerseCreate[]` | no | `[]` | Verses to attach (see note below on `verse_text`) |
 | `prayers` | `PrayerCreate[]` | no | `[]` | Prayers to attach |
 | `media` | `MediaCreate[]` | no | `[]` | Media attachments |
+
+> **Verse text is auto-fetched.** For each verse, the backend calls the Bible API using `verse_ref` and fills in `verse_text` itself — do not send `verse_text`. If `verse_ref` doesn't match the expected format (e.g. `"GEN 3:6"` or `"GEN 3:6 NIV"`) or isn't a real reference, the entry is still created successfully (`201`) but that verse comes back with `verse_text: null` and no error at all — this is a known gap (should be a clean `422` instead), being tightened up.
 
 **Response `201`** — `EntryResponse`  
 **Response `404`** — `{ "detail": "User or tree not found" }`  
@@ -225,6 +249,25 @@ Fetch a single entry. The entry must belong to the given user's tree.
 Delete an entry from a user's tree.
 
 **Response `204`** — no body
+
+#### `PUT /users/{user_id}/entries/{entry_id}/heart`
+
+Set (or unset) whether an entry is hearted, after it already exists.
+
+**Query params**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `hearted` | boolean | yes | `true` to heart, `false` to un-heart |
+
+**Response `200`** — `EntryResponse`  
+**Response `404`** — `{ "detail": "Entry not found" }`
+
+**Example**
+
+```http
+PUT /users/f47ac10b-58cc-4372-a567-0e02b2c3d479/entries/6ba7b810-9dad-11d1-80b4-00c04fd430c8/heart?hearted=true
+```
 
 ---
 
@@ -331,6 +374,7 @@ Content-Type: application/json
   "username": "string",
   "display_name": "string",
   "walking_since": "2026-07-21",
+  "bio": "string | null",
   "tree": { "...": "TreeResponse" }
 }
 ```
@@ -502,12 +546,9 @@ The API uses `tag` for the **tree node type** (`root`, `milestone`, `leaf`, `ver
 
 There are no `PATCH` or `PUT` routes. To change data today, delete and recreate, or wait for update endpoints to be added.
 
-### Partial create support
+### Create support
 
-On `POST /entries`:
-
-- **Prayers** and **media** are persisted (including on standalone `tag: "prayer"` entries).
-- **`verses`** and **`is_hearted`** are accepted in the request schema but are **not written** to the database yet. Verses can still appear in responses if inserted elsewhere (e.g. direct DB or a future endpoint).
+On `POST /entries`, **verses, prayers, media, and `is_hearted` are all persisted** (including on standalone `tag: "verse"`/`"prayer"` entries). There is no dedicated "attach a verse/prayer to an existing entry" endpoint yet — unlike media (`POST /users/{user_id}/entries/{entry_id}/media`), verses and prayers can currently only be provided in the same request that creates the entry. In progress.
 
 ### Media uploads
 
@@ -585,10 +626,12 @@ console.log(fullUser.tree.entries);
 | `GET` | `/users/{id}` | Get user by ID |
 | `POST` | `/users` | Create user |
 | `DELETE` | `/users/{id}` | Delete user |
+| `PUT` | `/users/{id}/bio` | Set a user's testimony/bio |
 | `POST` | `/entries` | Create entry |
 | `GET` | `/users/{user_id}/entries` | List user's entries |
 | `GET` | `/users/{user_id}/entries/{entry_id}` | Get entry |
 | `DELETE` | `/users/{user_id}/entries/{entry_id}` | Delete entry |
+| `PUT` | `/users/{user_id}/entries/{entry_id}/heart` | Heart / un-heart an entry |
 | `GET` | `/users/{user_id}/tags` | List available tags |
 | `POST` | `/users/{user_id}/tags` | Create custom tag |
 | `DELETE` | `/users/{user_id}/tags/{tag_id}` | Delete custom tag |
@@ -602,8 +645,16 @@ console.log(fullUser.tree.entries);
 ### Recent changes
 
 - **Entry node types** — `tag` now accepts `"verse"` and `"prayer"` for standalone timeline entries.
+- **Verses persisted** — `verses` on `POST /entries` now actually saves to the database, auto-fetching `verse_text` from `verse_ref` via the Bible API.
+- **Hearting** — `is_hearted` is now actually read/written (previously always showed `false` regardless of the real value). `PUT /users/{user_id}/entries/{entry_id}/heart?hearted=true|false` toggles it after creation.
+- **User bio** — `bio` field on users, settable via `PUT /users/{id}/bio`, for a testimony write-up separate from timeline entries.
 - **Media upload** — `POST /media/upload` stores files under `/uploads/` and serves them statically.
 - **Attach media** — `POST /users/{user_id}/entries/{entry_id}/media` adds media to an existing entry.
 - **Tag delete** — deleting a preset tag or a tag not owned by the user returns `404` instead of a silent `204`.
+
+### Known limitations
+
+- A malformed or unrecognized `verse_ref` currently succeeds silently with `verse_text: null` and no error, instead of a clean, descriptive `422` — being tightened up.
+- No dedicated endpoint yet to attach a verse or prayer to an *already-existing* entry (media has this via `POST /users/{user_id}/entries/{entry_id}/media`; verses/prayers don't yet).
 
 Document reflects the API as implemented in `routes.py` and `schemas/` on the `main` branch. For the latest contract, prefer the auto-generated OpenAPI docs at `/docs` when the server is running.
