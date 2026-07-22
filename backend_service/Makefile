@@ -20,7 +20,7 @@ run:
 	uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 test:
-	pytest tests/ -v
+	@set -a && [ -f .envrc ] && . ./.envrc; set +a; pytest tests/ -v
 
 migrate:
 	../database/migrate.sh
