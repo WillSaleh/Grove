@@ -20,7 +20,6 @@ interface Props {
   emptyText: string;
   isEmpty: boolean;
   nodes: Array<TimelineNode>;
-  onHoverMonth: (month: number | null) => void;
   onKeyDownTrack: (event: KeyboardEvent<HTMLDivElement>) => void;
   onOpenEntry: (id: string) => void;
   onOpenMonth: (month: number) => void;
@@ -57,7 +56,6 @@ export function TimelineTrack({
   emptyText,
   isEmpty,
   nodes,
-  onHoverMonth,
   onKeyDownTrack,
   onOpenEntry,
   onOpenMonth,
@@ -99,9 +97,8 @@ export function TimelineTrack({
           {trackMonths.map((track, index) => (
             <div key={`m-${index}`}>
               <div
+                className="gr-band"
                 onClick={track.month === null ? undefined : () => onOpenMonth(track.month as number)}
-                onMouseEnter={() => onHoverMonth(track.month)}
-                onMouseLeave={() => onHoverMonth(null)}
                 style={track.bandStyle}
               />
               <div style={track.guideStyle} />
@@ -111,8 +108,6 @@ export function TimelineTrack({
                 <button
                   className="border-none bg-transparent p-0"
                   onClick={() => onOpenMonth(track.month as number)}
-                  onMouseEnter={() => onHoverMonth(track.month)}
-                  onMouseLeave={() => onHoverMonth(null)}
                   style={track.labelStyle}
                   type="button"
                 >

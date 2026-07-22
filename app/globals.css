@@ -134,9 +134,25 @@ textarea:focus-visible {
   padding: 0 12px 0 4px;
 }
 
-/* Expanded (month-mode) card lifts on hover. !important beats the inline base transform. */
+/* Expanded (month-mode) card lifts on hover. !important beats the inline base transform.
+   will-change keeps the lift on the compositor so the first hover doesn't hitch. */
+.gr-card-lift {
+  will-change: transform;
+}
+
 .gr-card-lift:hover {
   transform: translateX(-50%) translateY(-6px) !important;
+}
+
+/* Month hover band (year view) is pure CSS :hover — hovering never re-renders the timeline,
+   so a card's hover animation is never interrupted mid-flight. */
+.gr-band {
+  background: transparent;
+  transition: background 0.18s ease;
+}
+
+.gr-band:hover {
+  background: rgba(255, 255, 255, 0.75);
 }
 
 /* Animations ported from the Timeline_V2 design */

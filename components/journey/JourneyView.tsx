@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 
 import { Icon } from "@/components/Icon";
@@ -74,7 +74,6 @@ export function JourneyView({ onShowToast }: Props) {
   const [zoom, setZoom] = useState<ZoomLevel>("month");
   const [zoomKey, setZoomKey] = useState(0);
   const [zoomDir, setZoomDir] = useState<"in" | "out">("in");
-  const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
   const [trackHeight, setTrackHeight] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -96,7 +95,11 @@ export function JourneyView({ onShowToast }: Props) {
   const monthMode = zoom === "month";
   const yearEntries = entriesForYear(entries, activeYear);
   const monthEntries = yearEntries.filter((entry) => entry.month === activeMonth);
-  const nodes = buildTimelineNodes({ activeMonth, bloomId, entries, motion: true, trackHeight, year: activeYear, zoom });
+  // Memoized so hover/toast/menu re-renders don't rebuild every node's style objects mid-animation.
+  const nodes = useMemo(
+    () => buildTimelineNodes({ activeMonth, bloomId, entries, motion: true, trackHeight, year: activeYear, zoom }),
+    [activeMonth, activeYear, bloomId, entries, trackHeight, zoom],
+  );
   const selectedEntry = selectedId ? entries.find((entry) => entry.id === selectedId) ?? null : null;
   const firstName = person.name.split(" ")[0];
   const hasTestimony = Boolean(testimony.text.trim() || testimony.video || testimony.photos.length);
@@ -421,14 +424,12 @@ export function JourneyView({ onShowToast }: Props) {
       ]
     : MONTHS.map((name, index) => ({
         bandStyle: {
-          background: hoveredMonth === index ? "rgba(255,255,255,.75)" : "transparent",
           borderRadius: 10,
           bottom: 24,
           cursor: "pointer",
           height: 30,
           left: `${(index / 12) * 100}%`,
           position: "absolute" as const,
-          transition: "background .18s",
           width: `${100 / 12}%`,
           zIndex: 0,
         },
@@ -488,7 +489,6 @@ export function JourneyView({ onShowToast }: Props) {
         emptyText={emptyText}
         isEmpty={nodes.length === 0}
         nodes={nodes}
-        onHoverMonth={setHoveredMonth}
         onKeyDownTrack={onKeyDownTrack}
         onOpenEntry={openEntry}
         onOpenMonth={openMonth}
@@ -506,7 +506,7 @@ export function JourneyView({ onShowToast }: Props) {
       <ZoomControl onSetZoom={changeZoom} zoom={zoom} />
 
       <button
-        className="fixed z-40 inline-flex cursor-pointer items-center gap-[9px] rounded-full border-none bg-fern px-[22px] py-[15px] text-[15px] font-semibold text-white shadow-[0_8px_22px_-6px_rgba(92,122,94,.5)] transition-[transform,box-shadow,background-color] hover:-translate-y-[3px] hover:scale-[1.03] hover:bg-fern-dark hover:shadow-[0_14px_30px_-8px_rgba(92,122,94,.6)]"
+        className="fixed z-40 inline-flex cursor-pointer items-center gap-[9px] rounded-full border-none bg-fern px-[22px] py-[15px] text-[15px] font-semibold text-white shadow-[0_8px_22px_-6px_rgba(92,122,94,.5)] transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-[3px] hover:scale-[1.03] hover:bg-fern-dark hover:shadow-[0_14px_30px_-8px_rgba(92,122,94,.6)]"
         onClick={openAdd}
         style={{ bottom: "clamp(18px,3vw,32px)", right: "clamp(18px,3vw,36px)" }}
         type="button"

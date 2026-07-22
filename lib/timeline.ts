@@ -186,7 +186,7 @@ export function buildTimelineNodes({
           transform: "translateX(-23px)",
           transition: motion ? "transform .2s cubic-bezier(.22,.61,.36,1)" : "none",
           zIndex: 2,
-          ...(motion ? { animation: "gr-risec .5s cubic-bezier(.22,.61,.36,1) both", animationDelay: `${index * 0.05}s` } : {}),
+          ...(motion ? { animation: "gr-risec .5s cubic-bezier(.22,.61,.36,1) backwards", animationDelay: `${index * 0.05}s` } : {}),
         }
       : {
           background: "#fff",
@@ -202,7 +202,7 @@ export function buildTimelineNodes({
           transition: motion ? "transform .25s cubic-bezier(.22,.61,.36,1), box-shadow .25s" : "none",
           width: 214,
           zIndex: 2,
-          ...(motion ? { animation: "gr-rise .5s cubic-bezier(.22,.61,.36,1) both", animationDelay: `${index * 0.05}s` } : {}),
+          ...(motion ? { animation: "gr-rise .5s cubic-bezier(.22,.61,.36,1) backwards", animationDelay: `${index * 0.05}s` } : {}),
         };
 
     const dotStyle: CSSProperties = isCurrentMonth
