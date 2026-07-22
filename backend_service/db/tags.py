@@ -23,12 +23,13 @@ async def postgres_tags_get_for_user(user_id: str):
         return await cur.fetchall()
 
 
-async def postgres_tag_delete(user_id: str, tag_id: str):
+async def postgres_tag_delete(user_id: str, tag_id: str) -> bool:
     async with db_cursor(commit=True) as cur:
         await cur.execute(
             "DELETE FROM tags WHERE id = %s AND user_id = %s",
             (tag_id, user_id),
         )
+        return cur.rowcount > 0
 
 
 async def postgres_tag_get_by_id(cur, tag_id: str):

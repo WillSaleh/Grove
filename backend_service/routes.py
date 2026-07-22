@@ -117,7 +117,9 @@ async def create_tag(user_id: str, tag: TagCreate):
 
 @router.delete("/users/{user_id}/tags/{tag_id}", status_code=204)
 async def delete_tag(user_id: str, tag_id: str):
-    await tag_delete(user_id, tag_id)
+    deleted = await tag_delete(user_id, tag_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Tag not found")
 
 
 @router.post("/media/upload", response_model=MediaUploadResponse, status_code=201)

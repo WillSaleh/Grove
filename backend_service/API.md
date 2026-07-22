@@ -50,6 +50,10 @@ Each entry has a **node type** stored in the `tag` field. This is separate from 
 | `"root"` | Origin / foundation moment on the tree |
 | `"milestone"` | Major milestone |
 | `"leaf"` | Smaller moment or reflection |
+| `"verse"` | Standalone verse entry; content lives in `verses[]` |
+| `"prayer"` | Standalone prayer entry; content lives in `prayers[]` |
+
+Media does not have a standalone node type. Attach media to any entry via `media[]` on create or `POST /users/{user_id}/entries/{entry_id}/media`.
 
 ### Category tags
 
@@ -169,7 +173,7 @@ Create a new entry on a user's tree.
 | `user_id` | string (UUID) | yes | — | Owner of the tree |
 | `heading` | string | yes | — | Entry title |
 | `body` | string | yes | — | Entry content |
-| `tag` | `"root"` \| `"milestone"` \| `"leaf"` | yes | — | Node type on the tree |
+| `tag` | `"root"` \| `"milestone"` \| `"leaf"` \| `"verse"` \| `"prayer"` | yes | — | Node type on the tree |
 | `category` | string \| null | no | `null` | Free-text category |
 | `is_praise` | boolean | no | `false` | Praise flag |
 | `is_encouragement` | boolean | no | `false` | Encouragement flag |
@@ -255,11 +259,67 @@ Content-Type: application/json
 
 #### `DELETE /users/{user_id}/tags/{tag_id}`
 
-Delete a **custom** tag owned by the user. Preset tags cannot be deleted (the delete is scoped to `user_id`).
+Delete a **custom** tag owned by the user. Preset tags (`user_id: null`) cannot be deleted and return `404`.
 
-**Response `204`** — no body
+**Response `204`** — no body  
+**Response `404`** — `{ "detail": "Tag not found" }` (preset tag, unknown tag ID, or tag owned by another user)
 
 ---
+
+### Media
+
+#### `POST /media/upload`
+
+Upload a file to local storage. Returns a URL path served from `/uploads/...`.
+
+**Request** — `multipart/form-data`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `file` | file | yes |
+
+**Response `201`** — `MediaUploadResponse`
+
+**Example**
+
+```http
+POST /media/upload
+Content-Type: multipart/form-data
+
+(file field)
+```
+
+```json
+{ "url": "/uploads/a1b2c3d4e5f6.jpg" }
+```
+
+Uploaded files are served statically at `GET /uploads/{filename}`.
+
+#### `POST /users/{user_id}/entries/{entry_id}/media`
+
+Attach media to an existing entry. Use a URL from `POST /media/upload` or any external URL.
+
+**Request body** — `MediaCreate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `media_type` | string | yes |
+| `url` | string \| null | no |
+
+**Response `201`** — `MediaResponse`  
+**Response `404`** — `{ "detail": "Entry not found" }` (entry missing or not owned by the user)
+
+**Example**
+
+```http
+POST /users/f47ac10b-58cc-4372-a567-0e02b2c3d479/entries/6ba7b810-9dad-11d1-80b4-00c04fd430c8/media
+Content-Type: application/json
+
+{
+  "media_type": "photo",
+  "url": "/uploads/a1b2c3d4e5f6.jpg"
+}
+```
 
 ## Response types
 
@@ -293,7 +353,7 @@ Delete a **custom** tag owned by the user. Preset tags cannot be deleted (the de
   "tree_id": "string",
   "heading": "string | null",
   "body": "string | null",
-  "tag": "root | milestone | leaf | null",
+  "tag": "root | milestone | leaf | verse | prayer | null",
   "category": "string | null",
   "entry_date": "2026-07-21",
   "is_praise": false,
@@ -342,6 +402,14 @@ Delete a **custom** tag owned by the user. Preset tags cannot be deleted (the de
 }
 ```
 
+### `MediaUploadResponse`
+
+```json
+{
+  "url": "/uploads/a1b2c3d4e5f6.jpg"
+}
+```
+
 ### `TagResponse`
 
 ```json
@@ -384,7 +452,7 @@ Delete a **custom** tag owned by the user. Preset tags cannot be deleted (the de
 | `200` | Successful read |
 | `201` | Resource created |
 | `204` | Successful delete (empty body) |
-| `404` | User, entry, or tree not found |
+| `404` | User, entry, tag, or tree not found |
 | `422` | Request body failed validation |
 
 ### Validation errors (`422`)
@@ -397,7 +465,7 @@ FastAPI returns a structured validation payload:
     {
       "type": "literal_error",
       "loc": ["body", "tag"],
-      "msg": "Input should be 'root', 'milestone' or 'leaf'",
+      "msg": "Input should be 'root', 'milestone', 'leaf', 'verse' or 'prayer'",
       "input": "branch"
     }
   ]
@@ -418,13 +486,17 @@ FastAPI returns a structured validation payload:
 { "detail": "User or tree not found" }
 ```
 
+```json
+{ "detail": "Tag not found" }
+```
+
 ---
 
 ## Front-end integration notes
 
 ### Naming: `tag` vs `entry_tag`
 
-The API uses `tag` for the **tree node type** (`root`, `milestone`, `leaf`). The optional category label from the tags table is returned as `entry_tag`. When creating an entry, send the tag's UUID in `tag_id`.
+The API uses `tag` for the **tree node type** (`root`, `milestone`, `leaf`, `verse`, `prayer`). The optional category label from the tags table is returned as `entry_tag`. When creating an entry, send the tag's UUID in `tag_id`.
 
 ### No update endpoints yet
 
@@ -434,8 +506,12 @@ There are no `PATCH` or `PUT` routes. To change data today, delete and recreate,
 
 On `POST /entries`:
 
-- **Prayers** and **media** are persisted.
+- **Prayers** and **media** are persisted (including on standalone `tag: "prayer"` entries).
 - **`verses`** and **`is_hearted`** are accepted in the request schema but are **not written** to the database yet. Verses can still appear in responses if inserted elsewhere (e.g. direct DB or a future endpoint).
+
+### Media uploads
+
+Use `POST /media/upload` to store a file locally, then pass the returned `/uploads/...` URL when creating an entry or calling `POST /users/{user_id}/entries/{entry_id}/media`.
 
 ### User payloads can be large
 
@@ -516,9 +592,18 @@ console.log(fullUser.tree.entries);
 | `GET` | `/users/{user_id}/tags` | List available tags |
 | `POST` | `/users/{user_id}/tags` | Create custom tag |
 | `DELETE` | `/users/{user_id}/tags/{tag_id}` | Delete custom tag |
+| `POST` | `/media/upload` | Upload a media file |
+| `POST` | `/users/{user_id}/entries/{entry_id}/media` | Attach media to an entry |
 
 ---
 
 ## Changelog
+
+### Recent changes
+
+- **Entry node types** — `tag` now accepts `"verse"` and `"prayer"` for standalone timeline entries.
+- **Media upload** — `POST /media/upload` stores files under `/uploads/` and serves them statically.
+- **Attach media** — `POST /users/{user_id}/entries/{entry_id}/media` adds media to an existing entry.
+- **Tag delete** — deleting a preset tag or a tag not owned by the user returns `404` instead of a silent `204`.
 
 Document reflects the API as implemented in `routes.py` and `schemas/` on the `main` branch. For the latest contract, prefer the auto-generated OpenAPI docs at `/docs` when the server is running.
