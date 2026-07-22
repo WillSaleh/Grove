@@ -2,7 +2,8 @@ CREATE TABLE users(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username TEXT UNIQUE NOT NULL,
   display_name TEXT NOT NULL,
-  walking_since DATE
+  walking_since DATE,
+  bio TEXT
 );
 
 CREATE TABLE trees(
@@ -20,10 +21,7 @@ CREATE TABLE tags (
 
 -- one row per item on the timeline; tag distinguishes the kind:
 -- 'root' | 'milestone' | 'leaf' are structural entries with their own
--- heading/body; 'verse' | 'prayer' are standalone items whose real
--- content lives in entries_verses/entries_prayers via entry_id.
--- media has no standalone tag - it only ever attaches to an existing
--- entry via entries_media.entry_id
+-- heading/body; 'verse' | 'prayer' | 'media' are standalone items whose
 CREATE TABLE entries(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tree_id UUID REFERENCES trees(id) ON DELETE CASCADE,

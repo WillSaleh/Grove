@@ -15,4 +15,9 @@ class UserResponse(BaseModel):
     username: str
     display_name: str
     walking_since: date | None = None
+    bio: str | None = None
     tree: TreeResponse
+
+
+class BioUpdate(BaseModel):
+    bio: str
