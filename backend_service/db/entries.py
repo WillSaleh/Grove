@@ -6,25 +6,38 @@ from db.trees import postgres_tree_id_for_user
 from db.verses import postgres_verses_create_for_entry, postgres_verses_get_for_entry
 from schemas.tree_node import EntryCreate
 
+_STANDALONE_ENTRY_FIELDS = (
+    "heading",
+    "body",
+    "category",
+    "is_praise",
+    "is_encouragement",
+    "prayers",
+    "verses",
+    "media",
+    "entry_tag",
+)
 
-def _format_entry_response(entry: dict) -> dict:
-    if entry.get("tag") != "verse":
-        return entry
 
-    verses = entry.pop("verses", [])
-    for field in (
-        "heading",
-        "body",
-        "category",
-        "is_praise",
-        "is_encouragement",
-        "prayers",
-        "media",
-        "entry_tag",
-    ):
+def _strip_standalone_entry_fields(entry: dict) -> None:
+    for field in _STANDALONE_ENTRY_FIELDS:
         entry.pop(field, None)
 
-    entry["verse"] = verses[0]
+
+def _format_entry_response(entry: dict) -> dict:
+    tag = entry.get("tag")
+    if tag == "verse":
+        verses = entry.pop("verses", [])
+        _strip_standalone_entry_fields(entry)
+        entry["verse"] = verses[0]
+        return entry
+
+    if tag == "prayer":
+        prayers = entry.pop("prayers", [])
+        _strip_standalone_entry_fields(entry)
+        entry["prayer"] = prayers[0]
+        return entry
+
     return entry
 
 

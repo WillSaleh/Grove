@@ -1,7 +1,9 @@
 from tests.conftest import (
     assert_entry_response,
+    assert_prayer_entry_response,
     assert_verse_entry_response,
     create_entry,
+    create_prayer_entry,
     create_verse_entry,
 )
 
@@ -70,6 +72,7 @@ async def test_list_entries_includes_created_entry(client, test_user):
 async def test_list_entries_returns_mixed_entry_shapes(client, test_user):
     leaf = await _create_entry(client, test_user["id"], tag="leaf")
     verse = await create_verse_entry(client, test_user["id"])
+    prayer = await create_prayer_entry(client, test_user["id"])
 
     response = await client.get(f"/users/{test_user['id']}/entries")
 
@@ -77,6 +80,7 @@ async def test_list_entries_returns_mixed_entry_shapes(client, test_user):
     entries = {entry["id"]: entry for entry in response.json()}
     assert_entry_response(entries[leaf["id"]])
     assert_verse_entry_response(entries[verse["id"]])
+    assert_prayer_entry_response(entries[prayer["id"]])
 
 
 async def test_create_entry_for_unknown_user_returns_404(client):
@@ -108,7 +112,7 @@ async def test_delete_entry_removes_entry(client, test_user):
     assert get_response.status_code == 404
 
 
-async def test_create_prayer_tagged_entry_persists_prayer(client, test_user):
+async def test_create_prayer_tagged_entry_returns_prayer_entry_response(client, test_user):
     entry = await create_entry(
         client,
         test_user["id"],
@@ -118,10 +122,8 @@ async def test_create_prayer_tagged_entry_persists_prayer(client, test_user):
         prayers=[{"prayer_text": "Lord, hear my prayer"}],
     )
 
-    assert_entry_response(entry)
-    assert entry["tag"] == "prayer"
-    assert len(entry["prayers"]) == 1
-    assert entry["prayers"][0]["prayer_text"] == "Lord, hear my prayer"
+    assert_prayer_entry_response(entry)
+    assert entry["prayer"]["prayer_text"] == "Lord, hear my prayer"
 
 
 async def test_create_verse_tagged_entry_returns_verse_entry_response(client, test_user):
@@ -189,6 +191,67 @@ async def test_create_verse_entry_for_unknown_user_returns_404(client):
         json={
             "user_id": "00000000-0000-0000-0000-000000000000",
             "verse": {"verse_ref": "JHN 3:16 NIV"},
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User or tree not found"
+
+
+async def test_create_prayer_entry_endpoint_returns_prayer_entry_response(client, test_user):
+    entry = await create_prayer_entry(
+        client,
+        test_user["id"],
+        prayer_text="Guide my steps today",
+    )
+
+    assert_prayer_entry_response(entry)
+    assert entry["tree_id"] == test_user["tree"]["id"]
+    assert entry["prayer"]["prayer_text"] == "Guide my steps today"
+    assert entry["prayer"]["answered"] is False
+
+
+async def test_get_prayer_entry_returns_prayer_entry_response(client, test_user):
+    created = await create_prayer_entry(client, test_user["id"])
+
+    response = await client.get(
+        f"/users/{test_user['id']}/entries/{created['id']}"
+    )
+
+    assert response.status_code == 200
+    assert_prayer_entry_response(response.json())
+
+
+async def test_set_prayer_entry_hearted_returns_prayer_entry_response(client, test_user):
+    created = await create_prayer_entry(client, test_user["id"])
+
+    response = await client.put(
+        f"/users/{test_user['id']}/entries/{created['id']}/heart",
+        params={"hearted": True},
+    )
+
+    assert response.status_code == 200
+    entry = response.json()
+    assert_prayer_entry_response(entry)
+    assert entry["is_hearted"] is True
+
+
+async def test_user_tree_includes_prayer_entry_response(client, test_user):
+    prayer = await create_prayer_entry(client, test_user["id"])
+
+    response = await client.get(f"/users/{test_user['id']}")
+
+    assert response.status_code == 200
+    entries = {entry["id"]: entry for entry in response.json()["tree"]["entries"]}
+    assert_prayer_entry_response(entries[prayer["id"]])
+
+
+async def test_create_prayer_entry_for_unknown_user_returns_404(client):
+    response = await client.post(
+        "/entries/prayer",
+        json={
+            "user_id": "00000000-0000-0000-0000-000000000000",
+            "prayer": {"prayer_text": "Lord, hear my prayer"},
         },
     )
 
