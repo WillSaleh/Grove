@@ -6,6 +6,7 @@ from handlers.users import (
     user_resource_get,
     users_collection_get,
     user_resource_delete,
+    user_resource_set_bio,
 )
 from handlers.entries import (
     entry_resource_create,
@@ -20,7 +21,7 @@ from handlers.tags import (
     tag_delete,
 )
 from handlers.media import media_attach_to_entry
-from schemas.user import UserCreate, UserResponse
+from schemas.user import UserCreate, UserResponse, BioUpdate
 from schemas.tree_node import EntryCreate, EntryResponse
 from schemas.tag import TagCreate, TagResponse
 from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
@@ -60,6 +61,14 @@ async def create_user(user: UserCreate):
 @router.delete("/users/{id}", status_code=204)
 async def delete_user(id: str):
     await user_resource_delete(id)
+
+
+@router.put("/users/{id}/bio", response_model=UserResponse)
+async def set_user_bio(id: str, body: BioUpdate):
+    user = await user_resource_set_bio(id, body.bio)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 @router.post("/entries", response_model=EntryResponse, status_code=201)
