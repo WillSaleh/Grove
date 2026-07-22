@@ -1,20 +1,17 @@
+from tests.conftest import create_entry
+
+
 async def _create_entry(client, user_id: str, tag: str = "leaf") -> dict:
-    response = await client.post(
-        "/entries",
-        json={
-            "user_id": user_id,
-            "heading": "Test heading",
-            "body": "Test body",
-            "tag": tag,
-            "category": "reflection",
-            "is_praise": True,
-            "is_encouragement": False,
-            "prayers": [{"prayer_text": "Please guide me"}],
-            "media": [{"media_type": "photo", "url": "https://example.com/photo.jpg"}],
-        },
+    return await create_entry(
+        client,
+        user_id,
+        tag=tag,
+        category="reflection",
+        is_praise=True,
+        is_encouragement=False,
+        prayers=[{"prayer_text": "Please guide me"}],
+        media=[{"media_type": "photo", "url": "https://example.com/photo.jpg"}],
     )
-    assert response.status_code == 201
-    return response.json()
 
 
 async def test_create_entry_returns_entry_with_children(client, test_user):
@@ -89,3 +86,31 @@ async def test_delete_entry_removes_entry(client, test_user):
         f"/users/{test_user['id']}/entries/{created['id']}"
     )
     assert get_response.status_code == 404
+
+
+async def test_create_prayer_tagged_entry_persists_prayer(client, test_user):
+    entry = await create_entry(
+        client,
+        test_user["id"],
+        tag="prayer",
+        heading="Standalone prayer",
+        body="Prayer body",
+        prayers=[{"prayer_text": "Lord, hear my prayer"}],
+    )
+
+    assert entry["tag"] == "prayer"
+    assert len(entry["prayers"]) == 1
+    assert entry["prayers"][0]["prayer_text"] == "Lord, hear my prayer"
+
+
+async def test_create_verse_tagged_entry_succeeds(client, test_user):
+    entry = await create_entry(
+        client,
+        test_user["id"],
+        tag="verse",
+        heading="Standalone verse",
+        body="Verse body",
+        verses=[{"verse_ref": "JHN 3:16 NIV"}],
+    )
+
+    assert entry["tag"] == "verse"
