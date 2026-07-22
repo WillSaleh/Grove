@@ -129,6 +129,40 @@ Verifies database connectivity.
 
 ---
 
+### Verse of the day
+
+#### `GET /verse_of_the_day`
+
+Returns today's YouVersion verse of the day as NIV passage text. The backend resolves the calendar day (1–366), fetches the passage ID from YouVersion, then returns the passage payload.
+
+No request body or query params.
+
+**Response `200`** — YouVersion passage object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Passage identifier in USFM form (e.g. `"JHN.3.16"`) |
+| `content` | string | Verse text |
+| `reference` | string | Human-readable reference (e.g. `"John 3:16"`) |
+
+**Example**
+
+```http
+GET /verse_of_the_day
+```
+
+```json
+{
+  "id": "JHN.3.16",
+  "content": "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
+  "reference": "John 3:16"
+}
+```
+
+> **Server config:** The backend calls the YouVersion Platform API using `YVP_APP_KEY` from the environment. Clients do not send an app key.
+
+---
+
 ### Users
 
 #### `GET /users`
@@ -853,6 +887,7 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 |--------|------|-------------|
 | `GET` | `/` | Welcome message |
 | `GET` | `/health/db` | Database health check |
+| `GET` | `/verse_of_the_day` | Today's verse of the day (NIV) |
 | `GET` | `/users` | List users (with nested trees) |
 | `GET` | `/users/{id}` | Get user by ID |
 | `POST` | `/users` | Create user |
@@ -877,6 +912,7 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 
 ### Recent changes
 
+- **Verse of the day** — `GET /verse_of_the_day` returns today's YouVersion verse as NIV passage text (`id`, `content`, `reference`).
 - **Public dev tunnel** — `make run-public` or `make tunnel` exposes local `:8000` on a free temporary `https://….trycloudflare.com` URL (see Quick start).
 - **Entry types renamed/expanded** — `leaf` is now `reflection`, and `gratitude` is a new structural tag. `tag` is now `"root" | "milestone" | "reflection" | "gratitude" | "verse" | "prayer"`.
 - **Redundant verse/prayer path retired** — `POST /entries` no longer accepts `tag: "verse"`/`"prayer"` at all (rejected with a standard `422`); `POST /entries/verse`/`POST /entries/prayer` are now the only way to create those.
