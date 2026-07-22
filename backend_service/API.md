@@ -11,12 +11,13 @@ Grove models a user's spiritual journey as a **tree**: each user owns one tree m
 | Item | Value |
 |------|-------|
 | **Local base URL** | `http://localhost:8000` |
+| **Public base URL (dev)** | Temporary `https://….trycloudflare.com` from `make run-public` or `make tunnel` |
 | **Content type** | `application/json` |
 | **IDs** | UUID strings (e.g. `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"`) |
 | **Dates** | ISO 8601 date strings (`YYYY-MM-DD`) |
 | **Authentication** | None (not implemented yet) |
-| **Interactive docs** | [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI) |
-| **OpenAPI schema** | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
+| **Interactive docs (local)** | [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI) |
+| **OpenAPI schema (local)** | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
 
 Run the server locally:
 
@@ -26,6 +27,28 @@ make run
 ```
 
 The server listens on `0.0.0.0:8000` with hot reload enabled.
+
+### Public URL for local dev (optional)
+
+To share the API while it runs on your machine, use Cloudflare's free **quick tunnel** (no account or DNS setup):
+
+```bash
+cd backend_service
+make run-public
+```
+
+Or run the API and tunnel separately:
+
+```bash
+make run      # terminal 1
+make tunnel   # terminal 2
+```
+
+`cloudflared` prints a temporary base URL like `https://random-words.trycloudflare.com`. Use it anywhere the docs show `http://localhost:8000` — e.g. Swagger at `https://….trycloudflare.com/docs`.
+
+- The URL changes each time you start the tunnel.
+- It only works while `make run-public` (or both `make run` and `make tunnel`) is running.
+- Intended for local dev/demo, not production. See `cloudflare/README.md` for details.
 
 ---
 
@@ -740,10 +763,14 @@ Use `POST /media/upload` to store a file locally, then pass the returned `/uploa
 
 ### CORS
 
-CORS is not configured in the backend. If the front end runs on a different origin (e.g. `http://localhost:3000`), you will need either:
+CORS is not configured in the backend. If the front end runs on a different origin (e.g. `http://localhost:3000`, or a `*.trycloudflare.com` URL while testing via quick tunnel), you will need either:
 
 - a Next.js API route / proxy layer, or
 - CORS middleware added to the FastAPI app.
+
+### Public quick tunnel
+
+`make run-public` or `make tunnel` exposes local `:8000` on a free temporary `https://….trycloudflare.com` URL. Anyone with that URL can call the API while your tunnel is running. There is no auth yet — treat shared URLs as dev-only.
 
 ### Authentication
 
@@ -756,7 +783,7 @@ There is no auth middleware. Any client that can reach the server can call any e
 Typical sequence for onboarding a user and adding their first milestone:
 
 ```typescript
-const BASE = "http://localhost:8000";
+const BASE = "http://localhost:8000"; // or your https://….trycloudflare.com URL from `make run-public`
 
 // 1. Create user
 const userRes = await fetch(`${BASE}/users`, {
@@ -848,6 +875,7 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 
 ### Recent changes
 
+- **Public dev tunnel** — `make run-public` or `make tunnel` exposes local `:8000` on a free temporary `https://….trycloudflare.com` URL (see Quick start).
 - **Standalone verse entries** — `POST /entries/verse` creates a verse-only timeline item. Responses use `VerseEntryResponse` with a singular `verse` field (no `heading`/`body`/`verses[]`).
 - **Standalone prayer entries** — `POST /entries/prayer` creates a prayer-only timeline item. Responses use `PrayerEntryResponse` with a singular `prayer` field (no `heading`/`body`/`prayers[]`).
 - **Mixed entry lists** — `GET /users/{user_id}/entries`, `GET /users/{id}`, and heart responses return `EntryResponse`, `VerseEntryResponse`, or `PrayerEntryResponse` depending on each entry's `tag`.
