@@ -7,6 +7,11 @@ class PrayerCreate(BaseModel):
     prayer_text: str | None = None
 
 
+class PrayerAnsweredUpdate(BaseModel):
+    answered: bool
+    answer_note: str | None = None
+
+
 class PrayerResponse(BaseModel):
     id: str
     entry_id: str

@@ -68,7 +68,7 @@ async def test_create_entry_with_tag_id_returns_entry_tag(client, test_user):
             "user_id": test_user["id"],
             "heading": "Tagged entry",
             "body": "Entry body",
-            "tag": "leaf",
+            "tag": "milestone",
             "tag_id": tag["id"],
         },
     )

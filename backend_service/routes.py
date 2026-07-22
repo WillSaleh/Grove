@@ -14,6 +14,7 @@ from handlers.entries import (
     entry_collection_get,
     entry_resource_delete,
     entry_resource_set_hearted,
+    entry_resource_update,
     prayer_entry_resource_create,
     verse_entry_resource_create,
 )
@@ -23,10 +24,12 @@ from handlers.tags import (
     tag_delete,
 )
 from handlers.media import media_attach_to_entry
+from handlers.prayers import prayer_resource_set_answered
 from schemas.user import UserCreate, UserResponse, BioUpdate
 from schemas.tree_node import (
     EntryCreate,
     EntryResponse,
+    EntryUpdate,
     PrayerEntryCreate,
     PrayerEntryResponse,
     VerseEntryCreate,
@@ -34,6 +37,7 @@ from schemas.tree_node import (
 )
 from schemas.tag import TagCreate, TagResponse
 from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
+from schemas.prayer import PrayerAnsweredUpdate, PrayerResponse
 from storage import save_upload
 
 
@@ -132,6 +136,14 @@ async def set_entry_hearted(user_id: str, entry_id: str, hearted: bool):
     return entry
 
 
+@router.put("/users/{user_id}/entries/{entry_id}", response_model=EntryOrStandaloneResponse)
+async def update_entry(user_id: str, entry_id: str, updates: EntryUpdate):
+    entry = await entry_resource_update(user_id, entry_id, updates)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
 @router.get("/users/{user_id}/tags", response_model=list[TagResponse])
 async def list_tags(user_id: str):
     return await tags_collection_get(user_id)
@@ -165,3 +177,13 @@ async def attach_media(user_id: str, entry_id: str, media: MediaCreate):
     if attached is None:
         raise HTTPException(status_code=404, detail="Entry not found")
     return attached
+
+
+@router.put("/users/{user_id}/prayers/{prayer_id}/answered", response_model=PrayerResponse)
+async def set_prayer_answered(user_id: str, prayer_id: str, body: PrayerAnsweredUpdate):
+    prayer = await prayer_resource_set_answered(
+        user_id, prayer_id, body.answered, body.answer_note
+    )
+    if prayer is None:
+        raise HTTPException(status_code=404, detail="Prayer not found")
+    return prayer
