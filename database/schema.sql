@@ -18,7 +18,12 @@ CREATE TABLE tags (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
--- one row per node on the tree; tag distinguishes the three kinds ('root' | 'milestone' | 'leaf')
+-- one row per item on the timeline; tag distinguishes the kind:
+-- 'root' | 'milestone' | 'leaf' are structural entries with their own
+-- heading/body; 'verse' | 'prayer' are standalone items whose real
+-- content lives in entries_verses/entries_prayers via entry_id.
+-- media has no standalone tag - it only ever attaches to an existing
+-- entry via entries_media.entry_id
 CREATE TABLE entries(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tree_id UUID REFERENCES trees(id) ON DELETE CASCADE,
