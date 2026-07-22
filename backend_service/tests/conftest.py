@@ -54,6 +54,14 @@ VERSE_ENTRY_RESPONSE_KEYS = {
     "is_hearted",
     "verse",
 }
+PRAYER_ENTRY_RESPONSE_KEYS = {
+    "id",
+    "tree_id",
+    "tag",
+    "entry_date",
+    "is_hearted",
+    "prayer",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -96,6 +104,7 @@ def unique_username(prefix: str = "test") -> str:
 def assert_entry_response(entry: dict) -> None:
     assert set(entry.keys()) == ENTRY_RESPONSE_KEYS
     assert "verse" not in entry
+    assert "prayer" not in entry
 
 
 def assert_verse_entry_response(entry: dict) -> None:
@@ -103,6 +112,13 @@ def assert_verse_entry_response(entry: dict) -> None:
     assert entry["tag"] == "verse"
     assert entry["verse"]["entry_id"] == entry["id"]
     assert entry["verse"]["verse_ref"] is not None
+
+
+def assert_prayer_entry_response(entry: dict) -> None:
+    assert set(entry.keys()) == PRAYER_ENTRY_RESPONSE_KEYS
+    assert entry["tag"] == "prayer"
+    assert entry["prayer"]["entry_id"] == entry["id"]
+    assert entry["prayer"]["prayer_text"] is not None
 
 
 async def create_entry(
@@ -135,6 +151,23 @@ async def create_verse_entry(
         json={
             "user_id": user_id,
             "verse": {"verse_ref": verse_ref},
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+async def create_prayer_entry(
+    client: AsyncClient,
+    user_id: str,
+    *,
+    prayer_text: str = "Lord, hear my prayer",
+) -> dict:
+    response = await client.post(
+        "/entries/prayer",
+        json={
+            "user_id": user_id,
+            "prayer": {"prayer_text": prayer_text},
         },
     )
     assert response.status_code == 201

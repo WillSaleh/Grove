@@ -2,7 +2,7 @@
 
 REST API reference for front-end clients integrating with the Grove backend.
 
-Grove models a user's spiritual journey as a **tree**: each user owns one tree made up of **entries** (nodes). Entries can include prayers, media, Bible verses, and optional category tags. Users can also create custom **tags** to label entries.
+Grove models a user's spiritual journey as a **tree**: each user owns one tree made up of **entries** (nodes). Structural entries (`root`, `milestone`, `leaf`) use the full entry shape with heading, body, and optional nested children. Standalone **verse** and **prayer** entries use slimmer dedicated response types. Users can also create custom **tags** to label entries.
 
 ---
 
@@ -34,24 +34,33 @@ The server listens on `0.0.0.0:8000` with hot reload enabled.
 ```
 User (optional bio)
  └── Tree (one per user, created automatically)
-      └── Entry[] (ordered by entry_date)
-           ├── verses[]
-           ├── prayers[]
-           ├── media[]
-           └── entry_tag (optional Tag)
+      └── Entry[] (ordered by entry_date; shape depends on tag)
+           ├── EntryResponse (root | milestone | leaf)
+           │    ├── verses[]
+           │    ├── prayers[]
+           │    ├── media[]
+           │    └── entry_tag (optional Tag)
+           ├── VerseEntryResponse (tag: verse)
+           │    └── verse
+           └── PrayerEntryResponse (tag: prayer)
+                └── prayer
 ```
 
 ### Entry node types (`tag` field)
 
 Each entry has a **node type** stored in the `tag` field. This is separate from user/category tags (`entry_tag` / `tag_id`).
 
-| Value | Meaning |
-|-------|---------|
-| `"root"` | Origin / foundation moment on the tree |
-| `"milestone"` | Major milestone |
-| `"leaf"` | Smaller moment or reflection |
-| `"verse"` | Standalone verse entry; content lives in `verses[]` |
-| `"prayer"` | Standalone prayer entry; content lives in `prayers[]` |
+| Value | Meaning | Response shape |
+|-------|---------|----------------|
+| `"root"` | Origin / foundation moment on the tree | `EntryResponse` |
+| `"milestone"` | Major milestone | `EntryResponse` |
+| `"leaf"` | Smaller moment or reflection | `EntryResponse` |
+| `"verse"` | Standalone verse on the timeline | `VerseEntryResponse` |
+| `"prayer"` | Standalone prayer on the timeline | `PrayerEntryResponse` |
+
+Structural entries (`root`, `milestone`, `leaf`) can still include nested `verses[]`, `prayers[]`, and `media[]`. Standalone verse and prayer entries return a slim shape with a single `verse` or `prayer` object instead of the full entry fields.
+
+Use `POST /entries/verse` or `POST /entries/prayer` for the dedicated create endpoints, or `POST /entries` with `tag: "verse"` / `tag: "prayer"` — all paths persist the same way and return the matching response shape.
 
 Media does not have a standalone node type. Attach media to any entry via `media[]` on create or `POST /users/{user_id}/entries/{entry_id}/media`.
 
@@ -100,13 +109,13 @@ Verifies database connectivity.
 
 #### `GET /users`
 
-List all users. Each user includes their full tree and all entries (nested).
+List all users. Each user includes their full tree and all entries (nested). Entries in `tree.entries` may be `EntryResponse`, `VerseEntryResponse`, or `PrayerEntryResponse` depending on each entry's `tag`.
 
 **Response `200`** — `UserResponse[]`
 
 #### `GET /users/{id}`
 
-Fetch a single user by ID.
+Fetch a single user by ID. `tree.entries` uses the same mixed entry shapes as `GET /users/{user_id}/entries`.
 
 **Response `200`** — `UserResponse`  
 **Response `404`** — `{ "detail": "User not found" }`
@@ -182,11 +191,19 @@ Content-Type: application/json
 
 ### Entries
 
-Entries are created at the top level (`POST /entries`) but read and deleted under a user scope.
+Entries are created at the top level (`POST /entries`, `POST /entries/verse`, or `POST /entries/prayer`) but read and deleted under a user scope.
+
+List, get, heart, and user-tree endpoints return one of three shapes depending on the entry's `tag`:
+
+- **`EntryResponse`** — `root`, `milestone`, `leaf`
+- **`VerseEntryResponse`** — `verse`
+- **`PrayerEntryResponse`** — `prayer`
+
+Discriminate in client code by checking `tag` and which top-level field is present (`verse`, `prayer`, or the full entry fields).
 
 #### `POST /entries`
 
-Create a new entry on a user's tree.
+Create a new entry on a user's tree. Returns the full `EntryResponse` for structural tags, or the slim standalone shape when `tag` is `"verse"` or `"prayer"`.
 
 **Request body** — `EntryCreate`
 
@@ -207,7 +224,7 @@ Create a new entry on a user's tree.
 
 > **Verse text is auto-fetched.** For each verse, the backend calls the Bible API using `verse_ref` and fills in `verse_text` itself — do not send `verse_text`. If `verse_ref` doesn't match the expected format (e.g. `"GEN 3:6"` or `"GEN 3:6 NIV"`) or isn't a real reference, the entry is still created successfully (`201`) but that verse comes back with `verse_text: null` and no error at all — this is a known gap (should be a clean `422` instead), being tightened up.
 
-**Response `201`** — `EntryResponse`  
+**Response `201`** — `EntryResponse` \| `VerseEntryResponse` \| `PrayerEntryResponse`  
 **Response `404`** — `{ "detail": "User or tree not found" }`  
 **Response `422`** — validation error (invalid body)
 
@@ -229,11 +246,99 @@ Content-Type: application/json
 }
 ```
 
+#### `POST /entries/verse`
+
+Create a standalone verse entry. Preferred over `POST /entries` when adding a verse-only timeline item.
+
+**Request body** — `VerseEntryCreate`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `user_id` | string (UUID) | yes | Owner of the tree |
+| `verse` | `VerseCreate` | yes | Verse reference to persist |
+
+> **Verse text is auto-fetched.** Same behavior as `POST /entries`: send `verse_ref` only; the backend fills `verse_text` via the Bible API.
+
+**Response `201`** — `VerseEntryResponse`  
+**Response `404`** — `{ "detail": "User or tree not found" }`
+
+**Example**
+
+```http
+POST /entries/verse
+Content-Type: application/json
+
+{
+  "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "verse": { "verse_ref": "JHN 3:16 NIV" }
+}
+```
+
+```json
+{
+  "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  "tree_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "tag": "verse",
+  "entry_date": "2026-07-22",
+  "is_hearted": false,
+  "verse": {
+    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "entry_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    "verse_ref": "JHN 3:16 NIV",
+    "verse_text": "For God so loved the world..."
+  }
+}
+```
+
+#### `POST /entries/prayer`
+
+Create a standalone prayer entry. Preferred over `POST /entries` when adding a prayer-only timeline item.
+
+**Request body** — `PrayerEntryCreate`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `user_id` | string (UUID) | yes | Owner of the tree |
+| `prayer` | `PrayerCreate` | yes | Prayer text to persist |
+
+**Response `201`** — `PrayerEntryResponse`  
+**Response `404`** — `{ "detail": "User or tree not found" }`
+
+**Example**
+
+```http
+POST /entries/prayer
+Content-Type: application/json
+
+{
+  "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "prayer": { "prayer_text": "Guide me in this new walk" }
+}
+```
+
+```json
+{
+  "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  "tree_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "tag": "prayer",
+  "entry_date": "2026-07-22",
+  "is_hearted": false,
+  "prayer": {
+    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "entry_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    "prayer_text": "Guide me in this new walk",
+    "answered": false,
+    "answered_at": null,
+    "answer_note": null
+  }
+}
+```
+
 #### `GET /users/{user_id}/entries`
 
 List all entries for a user, ordered by `entry_date` ascending.
 
-**Response `200`** — `EntryResponse[]`
+**Response `200`** — `(EntryResponse | VerseEntryResponse | PrayerEntryResponse)[]`
 
 > **Tip:** `GET /users/{id}` also returns all entries nested under `tree.entries`. Prefer the dedicated entries endpoint if you only need entry data.
 
@@ -241,7 +346,7 @@ List all entries for a user, ordered by `entry_date` ascending.
 
 Fetch a single entry. The entry must belong to the given user's tree.
 
-**Response `200`** — `EntryResponse`  
+**Response `200`** — `EntryResponse` \| `VerseEntryResponse` \| `PrayerEntryResponse`  
 **Response `404`** — `{ "detail": "Entry not found" }`
 
 #### `DELETE /users/{user_id}/entries/{entry_id}`
@@ -260,7 +365,7 @@ Set (or unset) whether an entry is hearted, after it already exists.
 |-------|------|----------|-------------|
 | `hearted` | boolean | yes | `true` to heart, `false` to un-heart |
 
-**Response `200`** — `EntryResponse`  
+**Response `200`** — `EntryResponse` \| `VerseEntryResponse` \| `PrayerEntryResponse`  
 **Response `404`** — `{ "detail": "Entry not found" }`
 
 **Example**
@@ -385,11 +490,15 @@ Content-Type: application/json
 {
   "id": "string",
   "user_id": "string",
-  "entries": [{ "...": "EntryResponse" }]
+  "entries": [
+    { "...": "EntryResponse | VerseEntryResponse | PrayerEntryResponse" }
+  ]
 }
 ```
 
 ### `EntryResponse`
+
+Returned for structural entries (`tag`: `root`, `milestone`, or `leaf`).
 
 ```json
 {
@@ -397,7 +506,7 @@ Content-Type: application/json
   "tree_id": "string",
   "heading": "string | null",
   "body": "string | null",
-  "tag": "root | milestone | leaf | verse | prayer | null",
+  "tag": "root | milestone | leaf | null",
   "category": "string | null",
   "entry_date": "2026-07-21",
   "is_praise": false,
@@ -407,6 +516,36 @@ Content-Type: application/json
   "prayers": [{ "...": "PrayerResponse" }],
   "media": [{ "...": "MediaResponse" }],
   "entry_tag": { "...": "TagResponse" } | null
+}
+```
+
+### `VerseEntryResponse`
+
+Returned for standalone verse entries (`tag`: `verse`). No `heading`, `body`, or plural `verses[]` — content is in the singular `verse` field.
+
+```json
+{
+  "id": "string",
+  "tree_id": "string",
+  "tag": "verse",
+  "entry_date": "2026-07-21",
+  "is_hearted": false,
+  "verse": { "...": "VerseResponse" }
+}
+```
+
+### `PrayerEntryResponse`
+
+Returned for standalone prayer entries (`tag`: `prayer`). No `heading`, `body`, or plural `prayers[]` — content is in the singular `prayer` field.
+
+```json
+{
+  "id": "string",
+  "tree_id": "string",
+  "tag": "prayer",
+  "entry_date": "2026-07-21",
+  "is_hearted": false,
+  "prayer": { "...": "PrayerResponse" }
 }
 ```
 
@@ -467,6 +606,20 @@ Content-Type: application/json
 ---
 
 ## Request types (nested objects)
+
+### `VerseEntryCreate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `user_id` | string (UUID) | yes |
+| `verse` | `VerseCreate` | yes |
+
+### `PrayerEntryCreate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `user_id` | string (UUID) | yes |
+| `prayer` | `PrayerCreate` | yes |
 
 ### `VerseCreate`
 
@@ -542,13 +695,40 @@ FastAPI returns a structured validation payload:
 
 The API uses `tag` for the **tree node type** (`root`, `milestone`, `leaf`, `verse`, `prayer`). The optional category label from the tags table is returned as `entry_tag`. When creating an entry, send the tag's UUID in `tag_id`.
 
+### Standalone entry shapes
+
+Verse and prayer timeline items use dedicated response types (`VerseEntryResponse`, `PrayerEntryResponse`) with a single nested `verse` or `prayer` object. Structural entries use the full `EntryResponse` with optional `verses[]`, `prayers[]`, and `media[]`.
+
+When rendering a mixed entry list, branch on `tag`:
+
+```typescript
+type TimelineEntry = EntryResponse | VerseEntryResponse | PrayerEntryResponse;
+
+function isVerseEntry(entry: TimelineEntry): entry is VerseEntryResponse {
+  return entry.tag === "verse" && "verse" in entry;
+}
+
+function isPrayerEntry(entry: TimelineEntry): entry is PrayerEntryResponse {
+  return entry.tag === "prayer" && "prayer" in entry;
+}
+```
+
+Prefer `POST /entries/verse` and `POST /entries/prayer` over `POST /entries` when creating standalone verse or prayer items — the request bodies are smaller and intent is clearer.
+
 ### No update endpoints yet
 
 There are no `PATCH` or `PUT` routes. To change data today, delete and recreate, or wait for update endpoints to be added.
 
 ### Create support
 
-On `POST /entries`, **verses, prayers, media, and `is_hearted` are all persisted** (including on standalone `tag: "verse"`/`"prayer"` entries). There is no dedicated "attach a verse/prayer to an existing entry" endpoint yet — unlike media (`POST /users/{user_id}/entries/{entry_id}/media`), verses and prayers can currently only be provided in the same request that creates the entry. In progress.
+On `POST /entries`, **verses, prayers, media, and `is_hearted` are all persisted**. Standalone `tag: "verse"` and `tag: "prayer"` entries return the slim response shapes even when created through `POST /entries`.
+
+Dedicated create endpoints:
+
+- `POST /entries/verse` — `VerseEntryCreate` → `VerseEntryResponse`
+- `POST /entries/prayer` — `PrayerEntryCreate` → `PrayerEntryResponse`
+
+There is no dedicated "attach a verse/prayer to an existing entry" endpoint yet — unlike media (`POST /users/{user_id}/entries/{entry_id}/media`), verses and prayers can currently only be provided in the same request that creates the entry.
 
 ### Media uploads
 
@@ -608,10 +788,32 @@ const entryRes = await fetch(`${BASE}/entries`, {
 });
 const entry = await entryRes.json();
 
-// 4. Read back the full tree
+// 4. Add a standalone verse entry
+const verseRes = await fetch(`${BASE}/entries/verse`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    user_id: user.id,
+    verse: { verse_ref: "JHN 3:16 NIV" },
+  }),
+});
+const verseEntry = await verseRes.json();
+
+// 5. Add a standalone prayer entry
+const prayerRes = await fetch(`${BASE}/entries/prayer`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    user_id: user.id,
+    prayer: { prayer_text: "Thank you for this new beginning." },
+  }),
+});
+const prayerEntry = await prayerRes.json();
+
+// 6. Read back the full tree
 const treeRes = await fetch(`${BASE}/users/${user.id}`);
 const fullUser = await treeRes.json();
-console.log(fullUser.tree.entries);
+console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse | PrayerEntryResponse[]
 ```
 
 ---
@@ -627,7 +829,9 @@ console.log(fullUser.tree.entries);
 | `POST` | `/users` | Create user |
 | `DELETE` | `/users/{id}` | Delete user |
 | `PUT` | `/users/{id}/bio` | Set a user's testimony/bio |
-| `POST` | `/entries` | Create entry |
+| `POST` | `/entries` | Create entry (returns shape based on `tag`) |
+| `POST` | `/entries/verse` | Create standalone verse entry |
+| `POST` | `/entries/prayer` | Create standalone prayer entry |
 | `GET` | `/users/{user_id}/entries` | List user's entries |
 | `GET` | `/users/{user_id}/entries/{entry_id}` | Get entry |
 | `DELETE` | `/users/{user_id}/entries/{entry_id}` | Delete entry |
@@ -644,7 +848,10 @@ console.log(fullUser.tree.entries);
 
 ### Recent changes
 
-- **Entry node types** — `tag` now accepts `"verse"` and `"prayer"` for standalone timeline entries.
+- **Standalone verse entries** — `POST /entries/verse` creates a verse-only timeline item. Responses use `VerseEntryResponse` with a singular `verse` field (no `heading`/`body`/`verses[]`).
+- **Standalone prayer entries** — `POST /entries/prayer` creates a prayer-only timeline item. Responses use `PrayerEntryResponse` with a singular `prayer` field (no `heading`/`body`/`prayers[]`).
+- **Mixed entry lists** — `GET /users/{user_id}/entries`, `GET /users/{id}`, and heart responses return `EntryResponse`, `VerseEntryResponse`, or `PrayerEntryResponse` depending on each entry's `tag`.
+- **Entry node types** — `tag` accepts `"verse"` and `"prayer"` for standalone timeline entries.
 - **Verses persisted** — `verses` on `POST /entries` now actually saves to the database, auto-fetching `verse_text` from `verse_ref` via the Bible API.
 - **Hearting** — `is_hearted` is now actually read/written (previously always showed `false` regardless of the real value). `PUT /users/{user_id}/entries/{entry_id}/heart?hearted=true|false` toggles it after creation.
 - **User bio** — `bio` field on users, settable via `PUT /users/{id}/bio`, for a testimony write-up separate from timeline entries.
@@ -657,4 +864,4 @@ console.log(fullUser.tree.entries);
 - A malformed or unrecognized `verse_ref` currently succeeds silently with `verse_text: null` and no error, instead of a clean, descriptive `422` — being tightened up.
 - No dedicated endpoint yet to attach a verse or prayer to an *already-existing* entry (media has this via `POST /users/{user_id}/entries/{entry_id}/media`; verses/prayers don't yet).
 
-Document reflects the API as implemented in `routes.py` and `schemas/` on the `main` branch. For the latest contract, prefer the auto-generated OpenAPI docs at `/docs` when the server is running.
+Document reflects the API as implemented in `routes.py` and `schemas/`. For the latest contract, prefer the auto-generated OpenAPI docs at `/docs` when the server is running.

@@ -51,3 +51,17 @@ class VerseEntryResponse(BaseModel):
     entry_date: date | None = None
     is_hearted: bool = False
     verse: VerseResponse
+
+
+class PrayerEntryCreate(BaseModel):
+    user_id: str
+    prayer: PrayerCreate
+
+
+class PrayerEntryResponse(BaseModel):
+    id: str
+    tree_id: str
+    tag: Literal["prayer"] = "prayer"
+    entry_date: date | None = None
+    is_hearted: bool = False
+    prayer: PrayerResponse
