@@ -893,3 +893,4 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 - No dedicated endpoint yet to attach a verse or prayer to an *already-existing* entry (media has this via `POST /users/{user_id}/entries/{entry_id}/media`; verses/prayers don't yet).
 
 Document reflects the API as implemented in `routes.py` and `schemas/`. For the latest contract, prefer the auto-generated OpenAPI docs at `/docs` when the server is running.
+ 
