@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from db import get_connection
 from handlers.users import (
@@ -18,9 +18,12 @@ from handlers.tags import (
     tags_collection_get,
     tag_delete,
 )
+from handlers.media import media_attach_to_entry
 from schemas.user import UserCreate, UserResponse
 from schemas.tree_node import EntryCreate, EntryResponse
 from schemas.tag import TagCreate, TagResponse
+from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
+from storage import save_upload
 
 
 router = APIRouter(prefix="")
@@ -97,3 +100,21 @@ async def create_tag(user_id: str, tag: TagCreate):
 @router.delete("/users/{user_id}/tags/{tag_id}", status_code=204)
 async def delete_tag(user_id: str, tag_id: str):
     await tag_delete(user_id, tag_id)
+
+
+@router.post("/media/upload", response_model=MediaUploadResponse, status_code=201)
+async def upload_media(file: UploadFile = File(...)):
+    url = await save_upload(file)
+    return {"url": url}
+
+
+@router.post(
+    "/users/{user_id}/entries/{entry_id}/media",
+    response_model=MediaResponse,
+    status_code=201,
+)
+async def attach_media(user_id: str, entry_id: str, media: MediaCreate):
+    attached = await media_attach_to_entry(user_id, entry_id, media)
+    if attached is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return attached
