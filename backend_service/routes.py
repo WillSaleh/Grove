@@ -14,6 +14,7 @@ from handlers.entries import (
     entry_collection_get,
     entry_resource_delete,
     entry_resource_set_hearted,
+    verse_entry_resource_create,
 )
 from handlers.tags import (
     tag_create,
@@ -22,7 +23,7 @@ from handlers.tags import (
 )
 from handlers.media import media_attach_to_entry
 from schemas.user import UserCreate, UserResponse, BioUpdate
-from schemas.tree_node import EntryCreate, EntryResponse
+from schemas.tree_node import EntryCreate, EntryResponse, VerseEntryCreate, VerseEntryResponse
 from schemas.tag import TagCreate, TagResponse
 from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
 from storage import save_upload
@@ -71,15 +72,21 @@ async def set_user_bio(id: str, body: BioUpdate):
     return user
 
 
-@router.post("/entries", response_model=EntryResponse, status_code=201)
+@router.post("/entries", response_model=EntryResponse | VerseEntryResponse, status_code=201)
 async def create_entry(entry: EntryCreate):
     created = await entry_resource_create(entry)
     if created is None:
         raise HTTPException(status_code=404, detail="User or tree not found")
     return created
 
+@router.post("/entries/verse", response_model=VerseEntryResponse, status_code=201)
+async def create_verse_entry(entry: VerseEntryCreate):
+    created = await verse_entry_resource_create(entry)
+    if created is None:
+        raise HTTPException(status_code=404, detail="User or tree not found")
+    return created
 
-@router.get("/users/{user_id}/entries/{entry_id}", response_model=EntryResponse)
+@router.get("/users/{user_id}/entries/{entry_id}", response_model=EntryResponse | VerseEntryResponse)
 async def get_entry(user_id: str, entry_id: str):
     entry = await entry_resource_get(user_id, entry_id)
     if entry is None:
@@ -87,7 +94,7 @@ async def get_entry(user_id: str, entry_id: str):
     return entry
 
 
-@router.get("/users/{user_id}/entries", response_model=list[EntryResponse])
+@router.get("/users/{user_id}/entries", response_model=list[EntryResponse | VerseEntryResponse])
 async def list_entries(user_id: str):
     return await entry_collection_get(user_id)
 
@@ -97,7 +104,7 @@ async def delete_entry(user_id: str, entry_id: str):
     await entry_resource_delete(user_id, entry_id)
 
 
-@router.put("/users/{user_id}/entries/{entry_id}/heart", response_model=EntryResponse)
+@router.put("/users/{user_id}/entries/{entry_id}/heart", response_model=EntryResponse | VerseEntryResponse)
 async def set_entry_hearted(user_id: str, entry_id: str, hearted: bool):
     entry = await entry_resource_set_hearted(user_id, entry_id, hearted)
     if entry is None:

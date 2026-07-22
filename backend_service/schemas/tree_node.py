@@ -39,3 +39,15 @@ class EntryResponse(BaseModel):
     prayers: list[PrayerResponse] = []
     media: list[MediaResponse] = []
     entry_tag: TagResponse | None = None
+
+class VerseEntryCreate(BaseModel):
+    user_id: str
+    verse: VerseCreate
+
+class VerseEntryResponse(BaseModel):
+    id: str
+    tree_id: str
+    tag: Literal["verse"] = "verse"
+    entry_date: date | None = None
+    is_hearted: bool = False
+    verse: VerseResponse

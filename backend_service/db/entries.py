@@ -6,6 +6,28 @@ from db.trees import postgres_tree_id_for_user
 from db.verses import postgres_verses_create_for_entry, postgres_verses_get_for_entry
 from schemas.tree_node import EntryCreate
 
+
+def _format_entry_response(entry: dict) -> dict:
+    if entry.get("tag") != "verse":
+        return entry
+
+    verses = entry.pop("verses", [])
+    for field in (
+        "heading",
+        "body",
+        "category",
+        "is_praise",
+        "is_encouragement",
+        "prayers",
+        "media",
+        "entry_tag",
+    ):
+        entry.pop(field, None)
+
+    entry["verse"] = verses[0]
+    return entry
+
+
 async def postgres_entry_create(entry: EntryCreate):
     async with db_cursor(commit=True) as cur:
         tree_id = await postgres_tree_id_for_user(cur, entry.user_id)
@@ -37,7 +59,7 @@ async def postgres_entry_create(entry: EntryCreate):
         await postgres_media_create_for_entry(cur, row["id"], entry.media)
 
         await _attach_entry_children(cur, row)
-        return row
+        return _format_entry_response(row)
 
 async def _attach_entry_children(cur, entry: dict):
     entry["verses"] = await postgres_verses_get_for_entry(cur, entry["id"])
@@ -66,7 +88,7 @@ async def postgres_entry_set_hearted(user_id: str, entry_id: str, hearted: bool)
             return None
 
         await _attach_entry_children(cur, row)
-        return row
+        return _format_entry_response(row)
 
 
 async def postgres_entry_resource_get(user_id: str, entry_id: str):
@@ -86,7 +108,7 @@ async def postgres_entry_resource_get(user_id: str, entry_id: str):
             return None
 
         await _attach_entry_children(cur, entry)
-        return entry
+        return _format_entry_response(entry)
 
 
 async def postgres_entry_collection_get(user_id: str):
@@ -104,8 +126,9 @@ async def postgres_entry_collection_get(user_id: str):
         )
         entries = await cur.fetchall()
 
-        for entry in entries:
+        for i, entry in enumerate(entries):
             await _attach_entry_children(cur, entry)
+            entries[i] = _format_entry_response(entry)
 
         return entries
 
