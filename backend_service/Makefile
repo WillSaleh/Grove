@@ -11,6 +11,10 @@ help:
 	@make _help-default
 	@echo "make run"
 	@echo "    Run FastAPI app with uvicorn"
+	@echo "make tunnel"
+	@echo "    Free temporary public URL via Cloudflare quick tunnel"
+	@echo "make run-public"
+	@echo "    Run API + Cloudflare quick tunnel together"
 	@echo "make test"
 	@echo "    Run API integration tests"
 	@echo "make migrate"
@@ -18,6 +22,14 @@ help:
 
 run:
 	uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+tunnel:
+	chmod +x cloudflare/run-tunnel.sh
+	./cloudflare/run-tunnel.sh
+
+run-public:
+	chmod +x scripts/run-public.sh cloudflare/run-tunnel.sh
+	./scripts/run-public.sh
 
 test:
 	@set -a && [ -f .envrc ] && . ./.envrc; set +a; pytest tests/ -v
@@ -29,4 +41,4 @@ venv: _venv-default
 	uv pip install --index-url https://pypi.thewardro.be/simple -r requirements.txt --python .venv/bin/python
 
 psql:
-	psql "$(DATABASE_URL)" 
+	psql "$(DATABASE_URL)"
