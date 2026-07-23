@@ -79,3 +79,44 @@ async def postgres_media_delete(user_id: str, entry_id: str, media_id: str):
             (media_id, entry_id, user_id),
         )
         return await cur.fetchone()
+
+
+async def postgres_testimony_media_get_for_user(cur, user_id: str):
+    await cur.execute(
+        """
+        SELECT id, user_id, media_type, url, label
+        FROM testimony_media WHERE user_id = %s
+        """,
+        (user_id,),
+    )
+    return await cur.fetchall()
+
+
+async def postgres_testimony_media_attach(user_id: str, item: MediaCreate):
+    async with db_cursor(commit=True) as cur:
+        await cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+        if await cur.fetchone() is None:
+            return None
+
+        await cur.execute(
+            """
+            INSERT INTO testimony_media (user_id, media_type, url, label)
+            VALUES (%s, %s, %s, NULL)
+            RETURNING id, user_id, media_type, url, label
+            """,
+            (user_id, item.media_type, item.url),
+        )
+        return await cur.fetchone()
+
+
+async def postgres_testimony_media_delete(user_id: str, media_id: str):
+    async with db_cursor(commit=True) as cur:
+        await cur.execute(
+            """
+            DELETE FROM testimony_media
+            WHERE id = %s AND user_id = %s
+            RETURNING url
+            """,
+            (media_id, user_id),
+        )
+        return await cur.fetchone()

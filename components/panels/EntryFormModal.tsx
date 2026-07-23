@@ -65,7 +65,7 @@ export function canSaveForm(form: EntryForm): boolean {
 }
 
 interface Props {
-  onAddFiles: (files: FileList) => void;
+  onAddFiles: (files: Array<File>) => void;
   onCancel: () => void;
   onChange: (patch: Partial<EntryForm>) => void;
   onPickType: (type: EntryType) => void;
@@ -514,8 +514,10 @@ export function EntryFormModal({
                       className="hidden"
                       multiple
                       onChange={(event) => {
+                        // event.target.files is a live FileList — read it into a plain array before
+                        // resetting the input, or the reset clears it out from under React's setState.
                         if (event.target.files) {
-                          onAddFiles(event.target.files);
+                          onAddFiles(Array.from(event.target.files));
                         }
                         event.target.value = "";
                       }}

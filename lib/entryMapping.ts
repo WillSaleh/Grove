@@ -2,6 +2,7 @@
 // (types/backend.ts) — a structural entry (root/milestone/reflection/gratitude), a standalone verse
 // entry, or a standalone prayer entry.
 import { fromBackendVerseRef, toBackendVerseRef } from "@/lib/bibleBooks";
+import { resolveMediaUrl } from "@/lib/config";
 import type { BackendEntry, BackendMedia, StructuralTag } from "@/types/backend";
 import { isPrayerEntry, isVerseEntry } from "@/types/backend";
 import type { Entry, EntryType, MediaItem } from "@/types/tree";
@@ -22,7 +23,7 @@ function toEntryDateString(entry: Pick<Entry, "year" | "month" | "day">): string
 function mapBackendMedia(media: Array<BackendMedia>): Array<MediaItem> {
   return media.map((item) => ({
     kind: item.media_type === "video" ? "video" : "image",
-    url: item.url ?? undefined,
+    url: resolveMediaUrl(item.url),
     mediaId: item.id,
   }));
 }

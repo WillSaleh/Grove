@@ -16,3 +16,11 @@ class MediaResponse(BaseModel):
 
 class MediaUploadResponse(BaseModel):
     url: str
+
+
+class TestimonyMediaResponse(BaseModel):
+    id: str
+    user_id: str
+    media_type: str
+    url: str | None = None
+    label: str | None = None

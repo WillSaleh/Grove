@@ -1,9 +1,9 @@
-// Talks to backend_service. Override the base URL (e.g. for a Cloudflare tunnel demo) via NEXT_PUBLIC_API_BASE_URL.
+// Talks to backend_service.
+import { API_BASE, resolveMediaUrl } from "@/lib/config";
 import { backendEntryToEntry, entryToCreateRequest, entryToUpdateRequest } from "@/lib/entryMapping";
-import type { BackendEntry } from "@/types/backend";
-import type { Entry, MediaItem } from "@/types/tree";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+import { backendUserToTestimony } from "@/lib/testimonyMapping";
+import type { BackendEntry, BackendUser } from "@/types/backend";
+import type { Entry, MediaItem, Testimony } from "@/types/tree";
 
 const USER_ID_KEY = "grove_user_id";
 
@@ -24,15 +24,17 @@ export type VerseOfTheDay = {
   text: string;
 };
 
-// There's no login flow yet — one demo user is created on first load and remembered in localStorage.
+// There's no login flow yet — a distinct guest user is created for each new browser on first load
+// and remembered in localStorage, so different browsers/sessions never share one account's data.
 export async function getOrCreateUserId(): Promise<string> {
   const stored = localStorage.getItem(USER_ID_KEY);
   if (stored) return stored;
 
+  const username = `guest_${crypto.randomUUID().slice(0, 8)}`;
   const res = await fetch(`${API_BASE}/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: "maya_bennett", display_name: "Maya Bennett" }),
+    body: JSON.stringify({ username, display_name: "Guest" }),
   });
   if (!res.ok) {
     throw new Error(`Failed to create demo user: ${res.status}`);
@@ -51,6 +53,27 @@ export async function fetchEntries(userId: string): Promise<Array<Entry>> {
 
   const entries: Array<BackendEntry> = await res.json();
   return entries.map(backendEntryToEntry);
+}
+
+export async function fetchTestimony(userId: string): Promise<Testimony> {
+  const res = await fetch(`${API_BASE}/users/${userId}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load user: ${res.status}`);
+  }
+
+  const user: BackendUser = await res.json();
+  return backendUserToTestimony(user.bio, user.testimony_media);
+}
+
+export async function updateTestimonyText(userId: string, text: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}/bio`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ bio: text }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update testimony: ${res.status}`);
+  }
 }
 
 // entry.id is a throwaway placeholder from the form — the backend assigns the real id, returned here.
@@ -120,6 +143,34 @@ export async function uploadMedia(file: File): Promise<string> {
   return data.url;
 }
 
+// Reconciles a media list against what's already persisted: uploads + attaches newly picked files,
+// deletes items the caller removed, and leaves already-persisted items untouched. Returns the media
+// array reflecting what's now actually persisted, for storing in local state. `attach`/`remove` hit
+// whichever backend endpoint owns the media (an entry's, or the testimony's).
+async function syncMedia(
+  previousMedia: Array<MediaItem>,
+  nextMedia: Array<MediaItem>,
+  attach: (mediaType: string, url: string) => Promise<string>,
+  remove: (mediaId: string) => Promise<void>,
+): Promise<Array<MediaItem>> {
+  const keptMediaIds = new Set(nextMedia.map((item) => item.mediaId).filter(Boolean));
+  const removed = previousMedia.filter((item) => item.mediaId && !keptMediaIds.has(item.mediaId));
+  await Promise.all(removed.map((item) => remove(item.mediaId as string)));
+
+  return Promise.all(
+    nextMedia
+      .filter((item) => item.kind !== "placeholder")
+      .map(async (item) => {
+        if (!item.file) return item; // already persisted, unchanged
+
+        const mediaType = item.kind === "video" ? "video" : "photo";
+        const url = await uploadMedia(item.file);
+        const mediaId = await attach(mediaType, url);
+        return { kind: item.kind, url: resolveMediaUrl(url), mediaId };
+      }),
+  );
+}
+
 async function attachMedia(userId: string, entryId: string, mediaType: string, url: string): Promise<string> {
   const res = await fetch(`${API_BASE}/users/${userId}/entries/${entryId}/media`, {
     method: "POST",
@@ -141,30 +192,52 @@ async function deleteMedia(userId: string, entryId: string, mediaId: string): Pr
   }
 }
 
-// Reconciles a form's media list against what's already persisted for this entry: uploads + attaches
-// newly picked files, deletes items the user removed, and leaves already-persisted items untouched.
-// Returns the media array reflecting what's now actually persisted, for storing in local state.
 export async function syncEntryMedia(
   userId: string,
   entryId: string,
   previousMedia: Array<MediaItem>,
   nextMedia: Array<MediaItem>,
 ): Promise<Array<MediaItem>> {
-  const keptMediaIds = new Set(nextMedia.map((item) => item.mediaId).filter(Boolean));
-  const removed = previousMedia.filter((item) => item.mediaId && !keptMediaIds.has(item.mediaId));
-  await Promise.all(removed.map((item) => deleteMedia(userId, entryId, item.mediaId as string)));
+  return syncMedia(
+    previousMedia,
+    nextMedia,
+    (mediaType, url) => attachMedia(userId, entryId, mediaType, url),
+    (mediaId) => deleteMedia(userId, entryId, mediaId),
+  );
+}
 
-  return Promise.all(
-    nextMedia
-      .filter((item) => item.kind !== "placeholder")
-      .map(async (item) => {
-        if (!item.file) return item; // already persisted, unchanged
+async function attachTestimonyMedia(userId: string, mediaType: string, url: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/users/${userId}/testimony/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ media_type: mediaType, url }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to attach testimony media: ${res.status}`);
+  }
 
-        const mediaType = item.kind === "video" ? "video" : "photo";
-        const url = await uploadMedia(item.file);
-        const mediaId = await attachMedia(userId, entryId, mediaType, url);
-        return { kind: item.kind, url, mediaId };
-      }),
+  const data: { id: string } = await res.json();
+  return data.id;
+}
+
+async function deleteTestimonyMedia(userId: string, mediaId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}/testimony/media/${mediaId}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(`Failed to delete testimony media: ${res.status}`);
+  }
+}
+
+// Callers flatten the testimony's photos+video into one media list first — see lib/testimonyMapping.ts.
+export async function syncTestimonyMedia(
+  userId: string,
+  previousMedia: Array<MediaItem>,
+  nextMedia: Array<MediaItem>,
+): Promise<Array<MediaItem>> {
+  return syncMedia(
+    previousMedia,
+    nextMedia,
+    (mediaType, url) => attachTestimonyMedia(userId, mediaType, url),
+    (mediaId) => deleteTestimonyMedia(userId, mediaId),
   );
 }
 

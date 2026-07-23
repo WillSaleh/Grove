@@ -18,7 +18,9 @@ import {
   getVerseOfTheDay,
   setPrayerAnswered,
   syncEntryMedia,
+  syncTestimonyMedia,
   updateBackendEntry,
+  updateTestimonyText,
   type VerseOfTheDay,
 } from "@/lib/api";
 import { buildDisplayVerseRef, parseDisplayVerseRef } from "@/lib/bibleBooks";
@@ -66,8 +68,8 @@ function buildYears(entries: Array<Entry>, since: number): Array<number> {
   return years;
 }
 
-function filesToMedia(files: FileList): Array<MediaItem> {
-  return Array.from(files).map((file) => ({
+function filesToMedia(files: Array<File>): Array<MediaItem> {
+  return files.map((file) => ({
     kind: file.type.startsWith("video") ? "video" : "image",
     url: URL.createObjectURL(file), // local preview only — the real, persistable URL comes from uploading `file`
     file,
@@ -98,7 +100,7 @@ export function JourneyView({ onShowToast }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<EntryForm>(() => blankForm(latestYear(entries), latestMonthIn(entries, latestYear(entries)), 15));
   const [testimonyOpen, setTestimonyOpen] = useState(false);
-  const [testimonyDraft, setTestimonyDraft] = useState<Testimony>({ photos: [], text: "", video: null });
+  const [testimonyDraft, setTestimonyDraft] = useState<Testimony>({ media: [], text: "" });
   const [verseOfTheDay, setVerseOfTheDay] = useState<VerseOfTheDay | null>(() => localVerseOfTheDay());
 
   const scrollElRef = useRef<HTMLDivElement | null>(null);
@@ -119,7 +121,7 @@ export function JourneyView({ onShowToast }: Props) {
   );
   const selectedEntry = selectedId ? entries.find((entry) => entry.id === selectedId) ?? null : null;
   const firstName = person.name.split(" ")[0];
-  const hasTestimony = Boolean(testimony.text.trim() || testimony.video || testimony.photos.length);
+  const hasTestimony = Boolean(testimony.text.trim() || testimony.media.length);
 
   useEffect(() => {
     // Backend Verse of the Day when available; otherwise keep the local list value seeded above.
@@ -344,12 +346,22 @@ export function JourneyView({ onShowToast }: Props) {
   }
 
   function openTestimony() {
-    setTestimonyDraft({ photos: [...testimony.photos], text: testimony.text, video: testimony.video });
+    setTestimonyDraft({ media: [...testimony.media], text: testimony.text });
     setTestimonyOpen(true);
   }
 
-  function saveTestimony() {
-    persistTestimony({ photos: [...testimonyDraft.photos], text: testimonyDraft.text.trim(), video: testimonyDraft.video });
+  async function saveTestimony() {
+    if (!userId) return;
+    const text = testimonyDraft.text.trim();
+    try {
+      await updateTestimonyText(userId, text);
+      const media = await syncTestimonyMedia(userId, testimony.media, testimonyDraft.media);
+      persistTestimony({ text, media });
+    } catch (error) {
+      console.error("Failed to save testimony:", error);
+      onShowToast("Couldn't save — try again", "ph-warning-circle");
+      return;
+    }
     setTestimonyOpen(false);
     onShowToast("Testimony saved", "ph-hand-heart");
   }
@@ -603,18 +615,21 @@ export function JourneyView({ onShowToast }: Props) {
           onAddPhotos={(files) =>
             setTestimonyDraft((current) => ({
               ...current,
-              photos: [...current.photos, ...Array.from(files).map((file) => ({ kind: "image" as const, url: URL.createObjectURL(file) }))],
+              media: [...current.media, ...filesToMedia(files)],
             }))
           }
           onCancel={() => setTestimonyOpen(false)}
           onChangeText={(text) => setTestimonyDraft((current) => ({ ...current, text }))}
-          onRemovePhoto={(index) => setTestimonyDraft((current) => ({ ...current, photos: current.photos.filter((_, i) => i !== index) }))}
-          onRemoveVideo={() => setTestimonyDraft((current) => ({ ...current, video: null }))}
+          onRemovePhoto={(item) => setTestimonyDraft((current) => ({ ...current, media: current.media.filter((m) => m !== item) }))}
+          onRemoveVideo={() => setTestimonyDraft((current) => ({ ...current, media: current.media.filter((m) => m.kind !== "video") }))}
           onSave={saveTestimony}
           onSetVideo={(files) => {
             const file = files[0];
             if (file) {
-              setTestimonyDraft((current) => ({ ...current, video: URL.createObjectURL(file) }));
+              setTestimonyDraft((current) => ({
+                ...current,
+                media: [...current.media.filter((m) => m.kind !== "video"), { kind: "video", url: URL.createObjectURL(file), file }],
+              }));
             }
           }}
         />

@@ -66,6 +66,15 @@ CREATE TABLE entries_media (
   label      TEXT
 );
 
+-- Photos/video attached to a user's testimony (bio) rather than to any one entry.
+CREATE TABLE testimony_media (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  media_type TEXT NOT NULL,
+  url        TEXT,
+  label      TEXT
+);
+
 INSERT INTO tags (name, user_id) VALUES
   ('Salvation', NULL),
   ('Baptism', NULL),

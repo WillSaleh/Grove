@@ -2,6 +2,7 @@ from datetime import date
 
 from pydantic import BaseModel
 
+from schemas.media import TestimonyMediaResponse
 from schemas.tree import TreeResponse
 
 
@@ -17,6 +18,7 @@ class UserResponse(BaseModel):
     display_name: str
     walking_since: date | None = None
     bio: str | None = None
+    testimony_media: list[TestimonyMediaResponse] = []
     tree: TreeResponse
 
 
