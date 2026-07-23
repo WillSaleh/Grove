@@ -459,7 +459,10 @@ export function EntryFormModal({
                 </span>
                 <div className="flex flex-wrap items-center gap-[10px]">
                   {form.media.map((item, index) => (
-                    <div key={index} style={mediaThumbStyle(item, 64)}>
+                    <div key={index} style={mediaThumbStyle(item.kind === "video" ? { ...item, url: undefined } : item, 64)}>
+                      {item.kind === "video" ? (
+                        <video className="h-full w-full object-cover" muted src={item.url} />
+                      ) : null}
                       <div
                         className="absolute right-1 top-1 flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full bg-black/60 text-xs text-white"
                         onClick={() => onRemoveMedia(index)}

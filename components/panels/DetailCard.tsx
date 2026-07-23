@@ -187,15 +187,18 @@ export function DetailCard({ blooming, closing, entry, onClose, onDelete, onEdit
             <>
               <div className={`${LABEL_CLASS} mt-[22px]`}>Gallery</div>
               <div className="grid grid-cols-2 gap-[10px]">
-                {(entry.media ?? []).map((item, index) => (
-                  <div key={index} style={mediaThumbStyle(item)}>
-                    {item.kind === "video" ? (
-                      <div className="absolute inset-0 flex items-center justify-center text-3xl text-white drop-shadow">
-                        <Icon name="ph-play-circle" weight="fill" />
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
+                {(entry.media ?? []).map((item, index) =>
+                  item.kind === "video" ? (
+                    <video
+                      className="aspect-[4/3] w-full rounded-xl border border-[#e4ddd0] bg-black object-cover"
+                      controls
+                      key={index}
+                      src={item.url}
+                    />
+                  ) : (
+                    <div key={index} style={mediaThumbStyle(item)} />
+                  ),
+                )}
               </div>
             </>
           ) : null}
