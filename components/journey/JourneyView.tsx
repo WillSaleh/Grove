@@ -24,7 +24,7 @@ import {
   type VerseOfTheDay,
 } from "@/lib/api";
 import { buildDisplayVerseRef, parseDisplayVerseRef } from "@/lib/bibleBooks";
-import { parseEntryDay } from "@/lib/dates";
+import { parseEntryDay, parseEntryYear } from "@/lib/dates";
 import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY, YEARS_BEFORE_SINCE } from "@/lib/timeline";
 import { verseOfTheDay as localVerseOfTheDay } from "@/lib/verses";
 import { useTreeStore } from "@/store/useTreeStore";
@@ -269,7 +269,7 @@ export function JourneyView({ onShowToast }: Props) {
       type: selectedEntry.type,
       verse: parsed?.verse ?? "",
       verseEnd: parsed?.verseEnd ?? "",
-      year: selectedEntry.year,
+      year: String(selectedEntry.year),
     });
     setFormOpen(true);
     setSelectedId(null);
@@ -301,13 +301,12 @@ export function JourneyView({ onShowToast }: Props) {
     if (!canSaveForm(form) || !form.type) {
       return;
     }
-    const day = parseEntryDay(form.day, Number(form.year), Number(form.month));
+    const year = parseEntryYear(form.year, activeYear);
+    const day = parseEntryDay(form.day, year, Number(form.month));
     const verseRef =
       form.type === "verse"
         ? buildDisplayVerseRef(form.bookCode, form.chapter.trim(), form.verse.trim(), form.verseEnd.trim() || undefined)
         : "";
-    // Accept any 4-digit year the user typed; fall back to the year in view if the field was left blank.
-    const year = form.year >= 1000 && form.year <= 9999 ? form.year : activeYear;
     const entry: Entry = {
       answeredNote: form.answeredNote.trim(),
       answered: form.answered,

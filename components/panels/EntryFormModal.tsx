@@ -31,7 +31,7 @@ export type EntryForm = {
   type: EntryType | null;
   verse: string;
   verseEnd: string;
-  year: number;
+  year: string;
 };
 
 export function blankForm(year: number, month: number, day: number): EntryForm {
@@ -53,7 +53,7 @@ export function blankForm(year: number, month: number, day: number): EntryForm {
     type: null,
     verse: "",
     verseEnd: "",
-    year,
+    year: String(year),
   };
 }
 

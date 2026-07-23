@@ -1,12 +1,12 @@
 "use client";
 
-import { clampDayString, daysInMonth, getDatePickerYears } from "@/lib/dates";
+import { clampDayString, daysInMonth, yearForCalendar } from "@/lib/dates";
 import { MONTHS_LONG } from "@/lib/timeline";
 
 export type DatePickerValue = {
   day: string;
   month: number;
-  year: number;
+  year: string;
 };
 
 interface Props {
@@ -19,13 +19,14 @@ const INPUT_CLASS =
 const LABEL_CLASS = "mb-[6px] block text-xs font-semibold uppercase tracking-[.04em] text-muted";
 
 export function DatePicker({ onChange, value }: Props) {
-  const years = getDatePickerYears();
-  const maxDay = daysInMonth(value.year, value.month);
+  const calendarYear = yearForCalendar(value.year);
+  const maxDay = daysInMonth(calendarYear, value.month);
 
   function update(patch: Partial<DatePickerValue>) {
     const next = { ...value, ...patch };
+    const year = yearForCalendar(next.year);
     onChange({
-      day: clampDayString(next.day, next.year, next.month),
+      day: clampDayString(next.day, year, next.month),
       month: next.month,
       year: next.year,
     });
@@ -61,17 +62,13 @@ export function DatePicker({ onChange, value }: Props) {
       </label>
       <label className="flex-1">
         <span className={LABEL_CLASS}>Year</span>
-        <select
-          className={`${INPUT_CLASS} cursor-pointer`}
-          onChange={(event) => update({ year: Number(event.target.value) })}
-          value={String(value.year)}
-        >
-          {years.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
+        <input
+          className={INPUT_CLASS}
+          onBlur={() => update({ year: value.year })}
+          onChange={(event) => onChange({ ...value, year: event.target.value })}
+          type="number"
+          value={value.year}
+        />
       </label>
     </div>
   );
