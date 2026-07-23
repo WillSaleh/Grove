@@ -2,15 +2,28 @@
 import { API_BASE, resolveMediaUrl } from "@/lib/config";
 import { backendEntryToEntry, entryToCreateRequest, entryToUpdateRequest } from "@/lib/entryMapping";
 import { backendUserToTestimony } from "@/lib/testimonyMapping";
+import { backendUserToPerson } from "@/lib/userMapping";
 import type { BackendEntry, BackendUser } from "@/types/backend";
-import type { Entry, MediaItem, Testimony } from "@/types/tree";
+import type { Entry, MediaItem, Person, Testimony } from "@/types/tree";
 
 const USER_ID_KEY = "grove_user_id";
 
-type UserResponse = {
-  id: string;
-  username: string;
-  display_name: string;
+type UserProfileResponse = BackendUser & {
+  tree: {
+    entries: Array<BackendEntry>;
+  };
+};
+
+export type UserSession = {
+  entries: Array<Entry>;
+  person: Person;
+  testimony: Testimony;
+  userId: string;
+};
+
+export type VerseOfTheDay = {
+  ref: string;
+  text: string;
 };
 
 type VerseOfTheDayResponse = {
@@ -19,30 +32,87 @@ type VerseOfTheDayResponse = {
   reference: string;
 };
 
-export type VerseOfTheDay = {
-  ref: string;
-  text: string;
-};
+export function getStoredUserId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return localStorage.getItem(USER_ID_KEY);
+}
 
-// There's no login flow yet — a distinct guest user is created for each new browser on first load
-// and remembered in localStorage, so different browsers/sessions never share one account's data.
-export async function getOrCreateUserId(): Promise<string> {
-  const stored = localStorage.getItem(USER_ID_KEY);
-  if (stored) return stored;
+function storeUserId(userId: string): void {
+  localStorage.setItem(USER_ID_KEY, userId);
+}
 
-  const username = `guest_${crypto.randomUUID().slice(0, 8)}`;
+export function clearStoredUserId(): void {
+  localStorage.removeItem(USER_ID_KEY);
+}
+
+export async function loadUserSession(userId: string): Promise<UserSession> {
+  const res = await fetch(`${API_BASE}/users/${userId}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load user: ${res.status}`);
+  }
+
+  const user: UserProfileResponse = await res.json();
+  return {
+    userId: user.id,
+    person: backendUserToPerson(user),
+    entries: user.tree.entries.map(backendEntryToEntry),
+    testimony: backendUserToTestimony(user.bio, user.testimony_media),
+  };
+}
+
+export async function loginByUsername(username: string): Promise<string> {
+  const trimmed = username.trim();
+  if (!trimmed) {
+    throw new Error("Enter a username.");
+  }
+
+  const res = await fetch(`${API_BASE}/users/by-username/${encodeURIComponent(trimmed)}`);
+  if (res.status === 404) {
+    throw new Error("No account found with that username.");
+  }
+  if (!res.ok) {
+    throw new Error(`Login failed: ${res.status}`);
+  }
+
+  const user: UserProfileResponse = await res.json();
+  storeUserId(user.id);
+  return user.id;
+}
+
+export async function createUserAccount(username: string, displayName: string): Promise<string> {
+  const trimmedUsername = username.trim();
+  const trimmedDisplayName = displayName.trim();
+  if (!trimmedUsername) {
+    throw new Error("Enter a username.");
+  }
+  if (!trimmedDisplayName) {
+    throw new Error("Enter a display name.");
+  }
+
   const res = await fetch(`${API_BASE}/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, display_name: "Guest" }),
+    body: JSON.stringify({ username: trimmedUsername, display_name: trimmedDisplayName }),
   });
+  if (res.status === 409) {
+    throw new Error("That username is already taken.");
+  }
   if (!res.ok) {
-    throw new Error(`Failed to create demo user: ${res.status}`);
+    throw new Error(`Could not create account: ${res.status}`);
   }
 
-  const user: UserResponse = await res.json();
-  localStorage.setItem(USER_ID_KEY, user.id);
+  const user: UserProfileResponse = await res.json();
+  storeUserId(user.id);
   return user.id;
+}
+
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(`Failed to delete account: ${res.status}`);
+  }
 }
 
 export async function fetchEntries(userId: string): Promise<Array<Entry>> {

@@ -4,6 +4,7 @@ from db import get_connection
 from handlers.users import (
     user_resource_create,
     user_resource_get,
+    user_resource_get_by_username,
     users_collection_get,
     user_resource_delete,
     user_resource_set_bio,
@@ -60,6 +61,14 @@ async def health_db():
 @router.get("/users", response_model=list[UserResponse])
 async def list_users():
     return await users_collection_get()
+
+
+@router.get("/users/by-username/{username}", response_model=UserResponse)
+async def get_user_by_username(username: str):
+    user = await user_resource_get_by_username(username.strip())
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 @router.get("/users/{id}", response_model=UserResponse)

@@ -15,7 +15,7 @@ Grove models a user's spiritual journey as a **tree**: each user owns one tree m
 | **Content type** | `application/json` |
 | **IDs** | UUID strings (e.g. `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"`) |
 | **Dates** | ISO 8601 date strings (`YYYY-MM-DD`) |
-| **Authentication** | None (not implemented yet) |
+| **Authentication** | None on the API itself — the Grove web app uses username lookup + a client-side session (see [Client authentication](#client-authentication)) |
 | **Interactive docs (local)** | [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI) |
 | **OpenAPI schema (local)** | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
 
@@ -49,6 +49,20 @@ make tunnel   # terminal 2
 - The URL changes each time you start the tunnel.
 - It only works while `make run-public` (or both `make run` and `make tunnel`) is running.
 - Intended for local dev/demo, not production. See `cloudflare/README.md` for details.
+
+### Client authentication
+
+The Grove front end has a **login / create-account** screen. There are no passwords or API tokens yet — the client identifies users by **username** and remembers the signed-in user’s UUID in `localStorage`.
+
+Typical flow:
+
+1. **Log in** — `GET /users/by-username/{username}`. Returns `404` if the username does not exist. On success, store `UserResponse.id` client-side.
+2. **Create account** — `POST /users` with `{ "username", "display_name" }`. Returns `409` if the username is taken. On success, store the returned `id`.
+3. **Load journey** — `GET /users/{id}` returns `display_name`, `walking_since`, `bio`, `testimony_media`, and `tree.entries` (mixed entry shapes).
+4. **Switch user** — clear the stored id and return to the login screen (no API call).
+5. **Delete account** — `DELETE /users/{id}`, then clear the stored id.
+
+> **Note:** Any client can call these endpoints if they know a user id or username. Server-side auth is not implemented yet.
 
 ---
 
@@ -163,6 +177,52 @@ GET /verse_of_the_day
 
 ---
 
+### Verse lookup
+
+#### `GET /verse`
+
+Fetch passage text for an arbitrary reference (used by the entry form preview and the Bible auto-fetch pipeline). Resolves the reference via the YouVersion / Bible Content APIs.
+
+**Query params**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `verse_ref` | string | yes | USFM-style reference with optional translation suffix |
+
+**Reference format:** `"BOOK CHAPTER:VERSE"` or `"BOOK CHAPTER:VERSE-END"` plus optional `" VERSION"`.
+
+Examples: `"JHN 3:16 NIV"`, `"PSA 23:1 ESV"`, `"1SA 5:1 NIV"`, `"MAT 5:7-12 NKJV"`.
+
+Supported `VERSION` codes include: `AMP`, `ASV`, `BSB`, `CEV`, `CSB`, `ESV`, `GNT`, `HCSB`, `KJV`, `LSB`, `MSG`, `NASB`, `NET`, `NIV`, `NKJV`, `NLT`, `WEB`. Defaults to `NIV` when omitted.
+
+**Response `200`**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `verse_ref` | string | Echo of the requested reference (trimmed) |
+| `verse_text` | string | Plain-text passage content |
+| `translation` | string | Resolved version code (e.g. `"NIV"`) |
+
+**Response `422`** — invalid reference or unknown version (`{ "detail": "..." }`)
+
+**Example**
+
+```http
+GET /verse?verse_ref=JER%2029:11%20NIV
+```
+
+```json
+{
+  "verse_ref": "JER 29:11 NIV",
+  "verse_text": "For I know the plans I have for you,” declares the Lord, “plans to prosper you and not to harm you...",
+  "translation": "NIV"
+}
+```
+
+> **Same resolver as create:** `POST /entries/verse` and nested verses on `POST /entries` use the same reference parser to auto-fill `verse_text`. Send `verse_ref` only — do not send `verse_text`.
+
+---
+
 ### Users
 
 #### `GET /users`
@@ -178,6 +238,19 @@ Fetch a single user by ID. `tree.entries` uses the same mixed entry shapes as `G
 **Response `200`** — `UserResponse`  
 **Response `404`** — `{ "detail": "User not found" }`
 
+#### `GET /users/by-username/{username}`
+
+Look up a user by **exact** username (whitespace trimmed). Used by the Grove login screen. Returns the same payload as `GET /users/{id}`.
+
+**Response `200`** — `UserResponse`  
+**Response `404`** — `{ "detail": "User not found" }`
+
+**Example**
+
+```http
+GET /users/by-username/jane_doe
+```
+
 #### `POST /users`
 
 Create a user. A tree is created automatically. `walking_since` is set to today's date.
@@ -189,7 +262,8 @@ Create a user. A tree is created automatically. `walking_since` is set to today'
 | `username` | string | yes | Unique username |
 | `display_name` | string | yes | Display name shown in the UI |
 
-**Response `201`** — `UserResponse`
+**Response `201`** — `UserResponse`  
+**Response `409`** — `{ "detail": "Username already taken" }`
 
 **Example**
 
@@ -244,6 +318,27 @@ Content-Type: application/json
 
 { "bio": "God has been faithful through every season." }
 ```
+
+#### `POST /users/{user_id}/testimony/media`
+
+Attach a photo or video to the user's testimony (separate from entry media). Use a URL from `POST /media/upload`.
+
+**Request body** — `MediaCreate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `media_type` | string | yes | e.g. `"photo"`, `"video"` |
+| `url` | string \| null | no |
+
+**Response `201`** — `TestimonyMediaResponse`  
+**Response `404`** — `{ "detail": "User not found" }`
+
+#### `DELETE /users/{user_id}/testimony/media/{media_id}`
+
+Remove one testimony media item.
+
+**Response `204`** — no body  
+**Response `404`** — `{ "detail": "Media not found" }`
 
 ---
 
@@ -433,6 +528,45 @@ Set (or unset) whether an entry is hearted, after it already exists.
 PUT /users/f47ac10b-58cc-4372-a567-0e02b2c3d479/entries/6ba7b810-9dad-11d1-80b4-00c04fd430c8/heart?hearted=true
 ```
 
+#### `PUT /users/{user_id}/entries/{entry_id}`
+
+Update a structural entry (`root`, `milestone`, `reflection`, `gratitude`): `heading`, `body`, and/or `entry_date`.
+
+**Response `200`** — `EntryResponse`  
+**Response `404`** — `{ "detail": "Entry not found" }`
+
+#### `PUT /users/{user_id}/entries/{entry_id}/verse`
+
+Update a standalone verse entry's `verse_ref` and `note`. `verse_text` and `translation` are re-fetched from the Bible API when `verse_ref` changes.
+
+**Request body** — `VerseCreate` (`verse_ref`, `note`)
+
+**Response `200`** — `VerseEntryResponse`  
+**Response `404`** — `{ "detail": "Entry not found" }`
+
+#### `PUT /users/{user_id}/entries/{entry_id}/prayer`
+
+Update a standalone prayer entry's `prayer_text`.
+
+**Request body** — `PrayerCreate`
+
+**Response `200`** — `PrayerEntryResponse`  
+**Response `404`** — `{ "detail": "Entry not found" }`
+
+#### `PUT /users/{user_id}/prayers/{prayer_id}/answered`
+
+Mark a prayer as answered or unanswered. `prayer_id` is the nested prayer row id (from `prayer.id` on prayer entries), not the entry id.
+
+**Request body** — `PrayerAnsweredUpdate`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `answered` | boolean | yes |
+| `answer_note` | string \| null | no |
+
+**Response `200`** — `PrayerResponse`  
+**Response `404`** — `{ "detail": "Prayer not found" }`
+
 ---
 
 ### Tags
@@ -528,6 +662,13 @@ Content-Type: application/json
 }
 ```
 
+#### `DELETE /users/{user_id}/entries/{entry_id}/media/{media_id}`
+
+Remove one media attachment from an entry.
+
+**Response `204`** — no body  
+**Response `404`** — `{ "detail": "Media not found" }`
+
 ## Response types
 
 ### `UserResponse`
@@ -539,6 +680,7 @@ Content-Type: application/json
   "display_name": "string",
   "walking_since": "2026-07-21",
   "bio": "string | null",
+  "testimony_media": [{ "...": "TestimonyMediaResponse" }],
   "tree": { "...": "TreeResponse" }
 }
 ```
@@ -888,23 +1030,32 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 | `GET` | `/` | Welcome message |
 | `GET` | `/health/db` | Database health check |
 | `GET` | `/verse_of_the_day` | Today's verse of the day (NIV) |
+| `GET` | `/verse?verse_ref=` | Look up passage text by reference |
 | `GET` | `/users` | List users (with nested trees) |
+| `GET` | `/users/by-username/{username}` | Look up user by username (login) |
 | `GET` | `/users/{id}` | Get user by ID |
 | `POST` | `/users` | Create user |
 | `DELETE` | `/users/{id}` | Delete user |
 | `PUT` | `/users/{id}/bio` | Set a user's testimony/bio |
+| `POST` | `/users/{user_id}/testimony/media` | Attach testimony photo/video |
+| `DELETE` | `/users/{user_id}/testimony/media/{media_id}` | Remove testimony media |
 | `POST` | `/entries` | Create entry (returns shape based on `tag`) |
 | `POST` | `/entries/verse` | Create standalone verse entry |
 | `POST` | `/entries/prayer` | Create standalone prayer entry |
 | `GET` | `/users/{user_id}/entries` | List user's entries |
 | `GET` | `/users/{user_id}/entries/{entry_id}` | Get entry |
+| `PUT` | `/users/{user_id}/entries/{entry_id}` | Update structural entry |
+| `PUT` | `/users/{user_id}/entries/{entry_id}/verse` | Update verse entry |
+| `PUT` | `/users/{user_id}/entries/{entry_id}/prayer` | Update prayer entry |
 | `DELETE` | `/users/{user_id}/entries/{entry_id}` | Delete entry |
 | `PUT` | `/users/{user_id}/entries/{entry_id}/heart` | Heart / un-heart an entry |
+| `PUT` | `/users/{user_id}/prayers/{prayer_id}/answered` | Mark prayer answered |
 | `GET` | `/users/{user_id}/tags` | List available tags |
 | `POST` | `/users/{user_id}/tags` | Create custom tag |
 | `DELETE` | `/users/{user_id}/tags/{tag_id}` | Delete custom tag |
 | `POST` | `/media/upload` | Upload a media file |
 | `POST` | `/users/{user_id}/entries/{entry_id}/media` | Attach media to an entry |
+| `DELETE` | `/users/{user_id}/entries/{entry_id}/media/{media_id}` | Remove entry media |
 
 ---
 
@@ -912,6 +1063,8 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 
 ### Recent changes
 
+- **Client login** — `GET /users/by-username/{username}` supports username-only login; `POST /users` returns `409` when the username exists. The Grove app stores the user id client-side and loads the journey via `GET /users/{id}`.
+- **Verse lookup** — `GET /verse?verse_ref=` returns `{ verse_ref, verse_text, translation }` for form preview; same parser as auto-fetch on create/update. Numbered books (e.g. `1SA`, `2CO`) are supported.
 - **Verse of the day** — `GET /verse_of_the_day` returns today's YouVersion verse as NIV passage text (`id`, `content`, `reference`).
 - **Public dev tunnel** — `make run-public` or `make tunnel` exposes local `:8000` on a free temporary `https://….trycloudflare.com` URL (see Quick start).
 - **Entry types renamed/expanded** — `leaf` is now `reflection`, and `gratitude` is a new structural tag. `tag` is now `"root" | "milestone" | "reflection" | "gratitude" | "verse" | "prayer"`.
@@ -922,6 +1075,9 @@ console.log(fullUser.tree.entries); // mixed EntryResponse | VerseEntryResponse 
 - **Verses persisted** — `verses` on `POST /entries` now actually saves to the database, auto-fetching `verse_text` from `verse_ref` via the Bible API.
 - **Hearting** — `is_hearted` is now actually read/written (previously always showed `false` regardless of the real value). `PUT /users/{user_id}/entries/{entry_id}/heart?hearted=true|false` toggles it after creation.
 - **User bio** — `bio` field on users, settable via `PUT /users/{id}/bio`, for a testimony write-up separate from timeline entries.
+- **Testimony media** — `testimony_media[]` on `UserResponse`; attach/remove via `POST /users/{user_id}/testimony/media` and `DELETE /users/{user_id}/testimony/media/{media_id}`.
+- **Entry updates** — `PUT /users/{user_id}/entries/{entry_id}` (structural), `.../verse`, and `.../prayer` update existing entries.
+- **Prayer answered** — `PUT /users/{user_id}/prayers/{prayer_id}/answered` toggles answered state and optional `answer_note`.
 - **Media upload** — `POST /media/upload` stores files under `/uploads/` and serves them statically.
 - **Attach media** — `POST /users/{user_id}/entries/{entry_id}/media` adds media to an existing entry.
 - **Tag delete** — deleting a preset tag or a tag not owned by the user returns `404` instead of a silent `204`.

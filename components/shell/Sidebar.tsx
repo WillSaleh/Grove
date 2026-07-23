@@ -1,15 +1,20 @@
 "use client";
 
+import { useState } from "react";
+
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
 import type { Friend } from "@/lib/friends";
+import { useTreeStore } from "@/store/useTreeStore";
 import type { TimelineView } from "@/types/tree";
 
 interface Props {
   friends: Array<Friend>;
   onClose: () => void;
+  onDeleteAccount: () => Promise<void>;
   onOpenFriend: (id: string) => void;
   onSelectView: (view: TimelineView) => void;
+  onSwitchUser: () => void;
   open: boolean;
   view: TimelineView;
 }
@@ -22,9 +27,32 @@ function navClass(active: boolean) {
   }`;
 }
 
-export function Sidebar({ friends, onClose, onOpenFriend, onSelectView, open, view }: Props) {
+export function Sidebar({
+  friends,
+  onClose,
+  onDeleteAccount,
+  onOpenFriend,
+  onSelectView,
+  onSwitchUser,
+  open,
+  view,
+}: Props) {
+  const person = useTreeStore((state) => state.person);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   if (!open) {
     return null;
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await onDeleteAccount();
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function selectView(next: TimelineView) {
@@ -82,6 +110,61 @@ export function Sidebar({ friends, onClose, onOpenFriend, onSelectView, open, vi
             </span>
           </button>
         ))}
+
+        <div className="mx-2 mb-[6px] mt-auto h-px bg-brand/[.14]" />
+
+        <div className={SECTION_LABEL}>Account</div>
+        {person.name ? (
+          <div className="mb-2 flex items-center gap-[11px] px-3 py-2">
+            <Avatar border="2px solid #fff" fontSize={13} initials={person.initials} size={34} />
+            <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-semibold leading-tight text-ink">
+              {person.name}
+            </span>
+          </div>
+        ) : null}
+
+        <button
+          className="flex w-full cursor-pointer items-center gap-[13px] rounded-[14px] border-none bg-transparent px-[14px] py-3 text-left text-[15.5px] font-semibold text-ink transition-colors hover:bg-brand/[.08]"
+          onClick={onSwitchUser}
+          type="button"
+        >
+          <Icon name="ph-sign-out" style={{ fontSize: 21 }} weight="duotone" /> Switch user
+        </button>
+
+        {confirmDelete ? (
+          <div className="rounded-[14px] border border-red-200 bg-red-50 p-3">
+            <div className="text-sm font-semibold text-red-800">Delete this account?</div>
+            <div className="mt-1 text-[13px] leading-[1.45] text-red-700">
+              This permanently removes your journey, entries, and testimony.
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button
+                className="flex-1 cursor-pointer rounded-[11px] border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+                disabled={deleting}
+                onClick={() => setConfirmDelete(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 cursor-pointer rounded-[11px] border-none bg-red-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={deleting}
+                onClick={handleDeleteAccount}
+                type="button"
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            className="flex w-full cursor-pointer items-center gap-[13px] rounded-[14px] border-none bg-transparent px-[14px] py-3 text-left text-[15.5px] font-semibold text-red-700 transition-colors hover:bg-red-50"
+            onClick={() => setConfirmDelete(true)}
+            type="button"
+          >
+            <Icon name="ph-trash" style={{ fontSize: 21 }} weight="duotone" /> Delete account
+          </button>
+        )}
       </div>
     </>
   );
