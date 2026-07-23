@@ -69,7 +69,10 @@ async def get_user(id: str):
 
 @router.post("/users", response_model=UserResponse, status_code=201)
 async def create_user(user: UserCreate):
-    return await user_resource_create(user)
+    created = await user_resource_create(user)
+    if created is None:
+        raise HTTPException(status_code=409, detail="Username already taken")
+    return created
 
 
 @router.delete("/users/{id}", status_code=204)

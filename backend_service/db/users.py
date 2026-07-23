@@ -1,5 +1,7 @@
 from datetime import date
 
+import psycopg
+
 from db import db_cursor
 from db.trees import postgres_tree_create_for_user
 from db.entries import postgres_entry_collection_get
@@ -61,20 +63,23 @@ async def postgres_users_collection_get():
 
 
 async def postgres_user_resource_put(user: UserCreate):
-    async with db_cursor(commit=True) as cur:
-        await cur.execute(
-            """
-            INSERT INTO users (username, display_name, walking_since)
-            VALUES (%s, %s, %s)
-            RETURNING id, username, display_name, walking_since, bio
-            """,
-            (user.username, user.display_name, user.walking_since or date.today()),
-        )
-        row = await cur.fetchone()
-        tree = await postgres_tree_create_for_user(cur, row["id"])
-        tree["entries"] = []
-        row["tree"] = tree
-        return row
+    try:
+        async with db_cursor(commit=True) as cur:
+            await cur.execute(
+                """
+                INSERT INTO users (username, display_name, walking_since)
+                VALUES (%s, %s, %s)
+                RETURNING id, username, display_name, walking_since, bio
+                """,
+                (user.username, user.display_name, user.walking_since or date.today()),
+            )
+            row = await cur.fetchone()
+            tree = await postgres_tree_create_for_user(cur, row["id"])
+            tree["entries"] = []
+            row["tree"] = tree
+            return row
+    except psycopg.errors.UniqueViolation:
+        return None
 
 
 async def postgres_user_set_bio(user_id: str, bio: str):
