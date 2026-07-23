@@ -72,7 +72,6 @@ interface Props {
   onRemoveMedia: (index: number) => void;
   onSave: () => void;
   form: EntryForm;
-  yearOptions: Array<number>;
 }
 
 const INPUT_CLASS =
@@ -175,7 +174,6 @@ export function EntryFormModal({
   onPickType,
   onRemoveMedia,
   onSave,
-  yearOptions,
 }: Props) {
   const meta = form.type ? ENTRY_TYPES[form.type] : null;
   const isType = form.step === "type";
@@ -409,17 +407,14 @@ export function EntryFormModal({
                 </label>
                 <label className="flex-1">
                   <span className={LABEL_CLASS}>Year</span>
-                  <select
-                    className={`${INPUT_CLASS} cursor-pointer`}
+                  <input
+                    className={INPUT_CLASS}
+                    max={9999}
+                    min={1}
                     onChange={(event) => onChange({ year: Number(event.target.value) })}
-                    value={String(form.year)}
-                  >
-                    {yearOptions.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
+                    type="number"
+                    value={form.year || ""}
+                  />
                 </label>
               </div>
 
