@@ -12,6 +12,7 @@ import { DetailCard } from "@/components/panels/DetailCard";
 import { blankForm, canSaveForm, EntryFormModal } from "@/components/panels/EntryFormModal";
 import type { EntryForm } from "@/components/panels/EntryFormModal";
 import { TestimonyModal } from "@/components/panels/TestimonyModal";
+import { createEntry, deleteBackendEntry, setPrayerAnswered, updateBackendEntry } from "@/lib/api";
 import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY } from "@/lib/timeline";
 import { verseOfTheDay } from "@/lib/verses";
 import { useTreeStore } from "@/store/useTreeStore";
@@ -68,6 +69,7 @@ export function JourneyView({ onShowToast }: Props) {
   const deleteEntry = useTreeStore((state) => state.deleteEntry);
   const setAnswered = useTreeStore((state) => state.setAnswered);
   const persistTestimony = useTreeStore((state) => state.saveTestimony);
+  const userId = useTreeStore((state) => state.userId);
 
   const [activeYear, setActiveYear] = useState(() => latestYear(entries));
   const [activeMonth, setActiveMonth] = useState(() => latestMonthIn(entries, latestYear(entries)));
@@ -193,11 +195,18 @@ export function JourneyView({ onShowToast }: Props) {
     }, 260);
   }
 
-  function toggleAnswered() {
-    if (!selectedEntry) {
+  async function toggleAnswered() {
+    if (!selectedEntry || !selectedEntry.prayerId || !userId) {
       return;
     }
     const next = !selectedEntry.answered;
+    try {
+      await setPrayerAnswered(userId, selectedEntry.prayerId, next, selectedEntry.answeredNote ?? null);
+    } catch (error) {
+      console.error("Failed to update prayer:", error);
+      onShowToast("Couldn't update — try again", "ph-warning-circle");
+      return;
+    }
     setAnswered(selectedEntry.id, next);
     if (next) {
       setBloomId(selectedEntry.id);
@@ -239,8 +248,15 @@ export function JourneyView({ onShowToast }: Props) {
     setCardClosing(false);
   }
 
-  function deleteSelected() {
-    if (!selectedEntry) {
+  async function deleteSelected() {
+    if (!selectedEntry || !userId) {
+      return;
+    }
+    try {
+      await deleteBackendEntry(userId, selectedEntry.id);
+    } catch (error) {
+      console.error("Failed to delete entry:", error);
+      onShowToast("Couldn't delete — try again", "ph-warning-circle");
       return;
     }
     deleteEntry(selectedEntry.id);
@@ -253,7 +269,7 @@ export function JourneyView({ onShowToast }: Props) {
     setForm((current) => ({ ...current, step: "fields", type }));
   }
 
-  function saveForm() {
+  async function saveForm() {
     if (!canSaveForm(form) || !form.type) {
       return;
     }
@@ -263,7 +279,7 @@ export function JourneyView({ onShowToast }: Props) {
       answered: form.answered,
       body: form.body.trim(),
       day,
-      id: form.mode === "edit" && form.id ? form.id : `u${Date.now()}`,
+      id: form.mode === "edit" && form.id ? form.id : "",
       media: form.media,
       month: Number(form.month),
       note: form.note.trim(),
@@ -274,11 +290,20 @@ export function JourneyView({ onShowToast }: Props) {
       verseText: form.verseText.trim(),
       year: Number(form.year),
     };
-    if (form.mode === "edit") {
-      updateEntry(entry);
-    } else {
-      addEntry(entry);
+
+    if (!userId) return;
+    try {
+      if (form.mode === "edit") {
+        updateEntry(await updateBackendEntry(userId, entry.id, entry));
+      } else {
+        addEntry(await createEntry(userId, entry));
+      }
+    } catch (error) {
+      console.error("Failed to save entry:", error);
+      onShowToast("Couldn't save — try again", "ph-warning-circle");
+      return;
     }
+
     setActiveYear(entry.year);
     setActiveMonth(entry.month);
     setFormOpen(false);

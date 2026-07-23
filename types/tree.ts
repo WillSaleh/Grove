@@ -26,6 +26,9 @@ export type Entry = {
   // prayer
   answered?: boolean;
   answeredNote?: string;
+  // The prayer sub-object has its own backend id, separate from the entry's id — PUT .../prayers/{id}/answered
+  // needs this one, not `id`. Not shown anywhere in the UI.
+  prayerId?: string;
   // attachments
   media?: Array<MediaItem>;
 };

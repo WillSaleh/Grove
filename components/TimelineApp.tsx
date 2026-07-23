@@ -8,7 +8,7 @@ import { Toast } from "@/components/journey/Toast";
 import type { ToastState } from "@/components/journey/Toast";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { TopNav } from "@/components/shell/TopNav";
-import { getOrCreateUserId } from "@/lib/api";
+import { fetchEntries, getOrCreateUserId } from "@/lib/api";
 import { FRIENDS } from "@/lib/friends";
 import { useTreeStore } from "@/store/useTreeStore";
 import type { TimelineView } from "@/types/tree";
@@ -20,15 +20,19 @@ export function TimelineApp() {
 
   const toastTimer = useRef<number | undefined>(undefined);
   const setUserId = useTreeStore((state) => state.setUserId);
+  const setEntries = useTreeStore((state) => state.setEntries);
   const requestedUserId = useRef(false);
 
   useEffect(() => {
     if (requestedUserId.current) return;
     requestedUserId.current = true;
     getOrCreateUserId()
-      .then(setUserId)
-      .catch((error) => console.error("Failed to establish demo user:", error));
-  }, [setUserId]);
+      .then(async (userId) => {
+        setUserId(userId);
+        setEntries(await fetchEntries(userId));
+      })
+      .catch((error) => console.error("Failed to load journey from backend:", error));
+  }, [setEntries, setUserId]);
 
   const showToast = useCallback((message: string, icon: string) => {
     setToast({ icon, message });

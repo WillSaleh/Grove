@@ -51,3 +51,32 @@ async def postgres_prayer_set_answered(
             ),
         )
         return await cur.fetchone()
+
+
+async def postgres_prayer_entry_update(user_id: str, entry_id: str, prayer: PrayerCreate):
+    async with db_cursor(commit=True) as cur:
+        await cur.execute(
+            """
+            SELECT e.id, e.tree_id, e.entry_date, e.is_hearted
+            FROM entries e
+            JOIN trees t ON e.tree_id = t.id
+            WHERE e.id = %s AND e.tag = 'prayer' AND t.user_id = %s
+            """,
+            (entry_id, user_id),
+        )
+        entry = await cur.fetchone()
+        if entry is None:
+            return None
+
+        await cur.execute(
+            """
+            UPDATE entries_prayers
+            SET prayer_text = %s
+            WHERE entry_id = %s
+            RETURNING id, entry_id, prayer_text, answered, answered_at, answer_note
+            """,
+            (prayer.prayer_text, entry_id),
+        )
+        entry["prayer"] = await cur.fetchone()
+        entry["tag"] = "prayer"
+        return entry

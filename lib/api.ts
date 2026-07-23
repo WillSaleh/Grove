@@ -1,4 +1,8 @@
 // Talks to backend_service. Override the base URL (e.g. for a Cloudflare tunnel demo) via NEXT_PUBLIC_API_BASE_URL.
+import { backendEntryToEntry, entryToCreateRequest, entryToUpdateRequest } from "@/lib/entryMapping";
+import type { BackendEntry } from "@/types/backend";
+import type { Entry } from "@/types/tree";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 const USER_ID_KEY = "grove_user_id";
@@ -26,4 +30,69 @@ export async function getOrCreateUserId(): Promise<string> {
   const user: UserResponse = await res.json();
   localStorage.setItem(USER_ID_KEY, user.id);
   return user.id;
+}
+
+export async function fetchEntries(userId: string): Promise<Array<Entry>> {
+  const res = await fetch(`${API_BASE}/users/${userId}/entries`);
+  if (!res.ok) {
+    throw new Error(`Failed to load entries: ${res.status}`);
+  }
+
+  const entries: Array<BackendEntry> = await res.json();
+  return entries.map(backendEntryToEntry);
+}
+
+// entry.id is a throwaway placeholder from the form — the backend assigns the real id, returned here.
+export async function createEntry(userId: string, entry: Entry): Promise<Entry> {
+  const { path, body } = entryToCreateRequest(entry, userId);
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create entry: ${res.status}`);
+  }
+
+  const created: BackendEntry = await res.json();
+  return backendEntryToEntry(created);
+}
+
+export async function deleteBackendEntry(userId: string, entryId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}/entries/${entryId}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(`Failed to delete entry: ${res.status}`);
+  }
+}
+
+// prayerId is the prayer sub-object's own id (Entry.prayerId) — not the entry's id.
+export async function setPrayerAnswered(
+  userId: string,
+  prayerId: string,
+  answered: boolean,
+  answerNote: string | null,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}/prayers/${prayerId}/answered`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answered, answer_note: answerNote }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update prayer: ${res.status}`);
+  }
+}
+
+export async function updateBackendEntry(userId: string, entryId: string, entry: Entry): Promise<Entry> {
+  const { path, body } = entryToUpdateRequest(entry, userId, entryId);
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update entry: ${res.status}`);
+  }
+
+  const updated: BackendEntry = await res.json();
+  return backendEntryToEntry(updated);
 }
