@@ -103,9 +103,6 @@ function titlePlaceholder(type: EntryType): string {
 }
 
 function bodyLabel(type: EntryType): string {
-  if (type === "verse") {
-    return "Context (optional)";
-  }
   if (type === "prayer") {
     return "Details";
   }
@@ -426,16 +423,18 @@ export function EntryFormModal({
                 </label>
               </div>
 
-              <label className="block">
-                <span className={LABEL_CLASS}>{bodyLabel(form.type)}</span>
-                <textarea
-                  className={`${INPUT_CLASS} leading-[1.55]`}
-                  onChange={(event) => onChange({ body: event.target.value })}
-                  placeholder={form.type === "reflection" ? "Write freely…" : "Say a little more…"}
-                  rows={3}
-                  value={form.body}
-                />
-              </label>
+              {form.type !== "verse" ? (
+                <label className="block">
+                  <span className={LABEL_CLASS}>{bodyLabel(form.type)}</span>
+                  <textarea
+                    className={`${INPUT_CLASS} leading-[1.55]`}
+                    onChange={(event) => onChange({ body: event.target.value })}
+                    placeholder={form.type === "reflection" ? "Write freely…" : "Say a little more…"}
+                    rows={3}
+                    value={form.body}
+                  />
+                </label>
+              ) : null}
 
               {form.type === "verse" ? (
                 <label className="block">
