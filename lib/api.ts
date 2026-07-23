@@ -9,6 +9,17 @@ type UserResponse = {
   display_name: string;
 };
 
+type VerseOfTheDayResponse = {
+  id: string;
+  content: string;
+  reference: string;
+};
+
+export type VerseOfTheDay = {
+  ref: string;
+  text: string;
+};
+
 // There's no login flow yet — one demo user is created on first load and remembered in localStorage.
 export async function getOrCreateUserId(): Promise<string> {
   const stored = localStorage.getItem(USER_ID_KEY);
@@ -26,4 +37,17 @@ export async function getOrCreateUserId(): Promise<string> {
   const user: UserResponse = await res.json();
   localStorage.setItem(USER_ID_KEY, user.id);
   return user.id;
+}
+
+export async function getVerseOfTheDay(): Promise<VerseOfTheDay> {
+  const res = await fetch(`${API_BASE}/verse_of_the_day`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch verse of the day: ${res.status}`);
+  }
+
+  const data: VerseOfTheDayResponse = await res.json();
+  return {
+    ref: data.reference,
+    text: data.content.trim(),
+  };
 }
