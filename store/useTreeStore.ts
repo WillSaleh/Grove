@@ -3,8 +3,19 @@
 // Mutations are optimistic and local for now; wiring to the backend is a swap in the repository layer.
 import { create } from "zustand";
 
-import { SEED_JOURNEY } from "@/lib/seed";
 import type { Entry, Person, Testimony } from "@/types/tree";
+
+const EMPTY_PERSON: Person = {
+  av: ["#4a5759"],
+  initials: "",
+  name: "",
+  since: new Date().getFullYear(),
+};
+
+const EMPTY_TESTIMONY: Testimony = {
+  media: [],
+  text: "",
+};
 
 type TreeStore = {
   addEntry: (entry: Entry) => void;
@@ -14,8 +25,10 @@ type TreeStore = {
   saveTestimony: (testimony: Testimony) => void;
   setAnswered: (id: string, answered: boolean) => void;
   setEntries: (entries: Array<Entry>) => void;
+  setPerson: (person: Person) => void;
   setTestimony: (testimony: Testimony) => void;
   setUserId: (userId: string) => void;
+  clearSession: () => void;
   testimony: Testimony;
   updateEntry: (entry: Entry) => void;
   userId: string | null;
@@ -23,8 +36,8 @@ type TreeStore = {
 
 export const useTreeStore = create<TreeStore>((set) => ({
   entries: [],
-  person: SEED_JOURNEY.person,
-  testimony: SEED_JOURNEY.testimony,
+  person: EMPTY_PERSON,
+  testimony: EMPTY_TESTIMONY,
   userId: null,
 
   addEntry: (entry) => set((state) => ({ entries: [...state.entries, entry] })),
@@ -40,9 +53,19 @@ export const useTreeStore = create<TreeStore>((set) => ({
 
   setEntries: (entries) => set({ entries }),
 
+  setPerson: (person) => set({ person }),
+
   setTestimony: (testimony) => set({ testimony }),
 
   setUserId: (userId) => set({ userId }),
+
+  clearSession: () =>
+    set({
+      entries: [],
+      person: EMPTY_PERSON,
+      testimony: EMPTY_TESTIMONY,
+      userId: null,
+    }),
 
   updateEntry: (updated) =>
     set((state) => ({

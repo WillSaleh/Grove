@@ -24,6 +24,7 @@ import {
   type VerseOfTheDay,
 } from "@/lib/api";
 import { buildDisplayVerseRef, parseDisplayVerseRef } from "@/lib/bibleBooks";
+import { parseEntryDay } from "@/lib/dates";
 import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY, YEARS_BEFORE_SINCE } from "@/lib/timeline";
 import { verseOfTheDay as localVerseOfTheDay } from "@/lib/verses";
 import { useTreeStore } from "@/store/useTreeStore";
@@ -300,7 +301,7 @@ export function JourneyView({ onShowToast }: Props) {
     if (!canSaveForm(form) || !form.type) {
       return;
     }
-    const day = Math.max(1, Math.min(31, Number.parseInt(form.day, 10) || 1));
+    const day = parseEntryDay(form.day, Number(form.year), Number(form.month));
     const verseRef =
       form.type === "verse"
         ? buildDisplayVerseRef(form.bookCode, form.chapter.trim(), form.verse.trim(), form.verseEnd.trim() || undefined)

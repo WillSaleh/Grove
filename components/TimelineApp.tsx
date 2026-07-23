@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { ConnectPlaceholder } from "@/components/connect/ConnectPlaceholder";
 import { JourneyView } from "@/components/journey/JourneyView";
@@ -8,33 +8,20 @@ import { Toast } from "@/components/journey/Toast";
 import type { ToastState } from "@/components/journey/Toast";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { TopNav } from "@/components/shell/TopNav";
-import { fetchEntries, fetchTestimony, getOrCreateUserId } from "@/lib/api";
 import { FRIENDS } from "@/lib/friends";
-import { useTreeStore } from "@/store/useTreeStore";
 import type { TimelineView } from "@/types/tree";
 
-export function TimelineApp() {
+interface Props {
+  onDeleteAccount: () => Promise<void>;
+  onSwitchUser: () => void;
+}
+
+export function TimelineApp({ onDeleteAccount, onSwitchUser }: Props) {
   const [view, setView] = useState<TimelineView>("journey");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const toastTimer = useRef<number | undefined>(undefined);
-  const setUserId = useTreeStore((state) => state.setUserId);
-  const setEntries = useTreeStore((state) => state.setEntries);
-  const setTestimony = useTreeStore((state) => state.setTestimony);
-  const requestedUserId = useRef(false);
-
-  useEffect(() => {
-    if (requestedUserId.current) return;
-    requestedUserId.current = true;
-    getOrCreateUserId()
-      .then(async (userId) => {
-        setUserId(userId);
-        setEntries(await fetchEntries(userId));
-        setTestimony(await fetchTestimony(userId));
-      })
-      .catch((error) => console.error("Failed to load journey from backend:", error));
-  }, [setEntries, setTestimony, setUserId]);
 
   const showToast = useCallback((message: string, icon: string) => {
     setToast({ icon, message });
@@ -51,8 +38,21 @@ export function TimelineApp() {
       <Sidebar
         friends={FRIENDS}
         onClose={() => setSidebarOpen(false)}
+        onDeleteAccount={async () => {
+          try {
+            await onDeleteAccount();
+            setSidebarOpen(false);
+          } catch (error) {
+            console.error("Failed to delete account:", error);
+            showToast("Couldn't delete account — try again", "ph-warning-circle");
+          }
+        }}
         onOpenFriend={() => setView("connect")}
         onSelectView={setView}
+        onSwitchUser={() => {
+          onSwitchUser();
+          setSidebarOpen(false);
+        }}
         open={sidebarOpen}
         view={view}
       />

@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { Icon } from "@/components/Icon";
+import { DatePicker } from "@/components/DatePicker";
 import { ENTRY_TYPES, ENTRY_TYPE_ORDER } from "@/lib/entryTypes";
 import { BIBLE_BOOKS, BIBLE_VERSIONS, buildBackendVerseRef, buildDisplayVerseRef } from "@/lib/bibleBooks";
 import { fetchVerseText } from "@/lib/api";
 import { mediaThumbStyle } from "@/lib/media";
-import { MONTHS_LONG } from "@/lib/timeline";
 import type { EntryType, MediaItem } from "@/types/tree";
 
 // The add/edit draft. Kept separate from the persisted Entry: `day` stays a string while typing,
@@ -379,44 +379,10 @@ export function EntryFormModal({
                 </>
               ) : null}
 
-              <div className="flex items-end gap-3">
-                <label className="flex-[1.4]">
-                  <span className={LABEL_CLASS}>Month</span>
-                  <select
-                    className={`${INPUT_CLASS} cursor-pointer`}
-                    onChange={(event) => onChange({ month: Number(event.target.value) })}
-                    value={String(form.month)}
-                  >
-                    {MONTHS_LONG.map((label, index) => (
-                      <option key={label} value={index}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex-[0.8]">
-                  <span className={LABEL_CLASS}>Day</span>
-                  <input
-                    className={INPUT_CLASS}
-                    max={31}
-                    min={1}
-                    onChange={(event) => onChange({ day: event.target.value })}
-                    type="number"
-                    value={form.day}
-                  />
-                </label>
-                <label className="flex-1">
-                  <span className={LABEL_CLASS}>Year</span>
-                  <input
-                    className={INPUT_CLASS}
-                    max={9999}
-                    min={1}
-                    onChange={(event) => onChange({ year: Number(event.target.value) })}
-                    type="number"
-                    value={form.year || ""}
-                  />
-                </label>
-              </div>
+              <DatePicker
+                onChange={({ day, month, year }) => onChange({ day, month, year })}
+                value={{ day: form.day, month: form.month, year: form.year }}
+              />
 
               {form.type !== "verse" ? (
                 <label className="block">
