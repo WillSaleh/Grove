@@ -14,6 +14,7 @@ type TreeStore = {
   saveTestimony: (testimony: Testimony) => void;
   setAnswered: (id: string, answered: boolean) => void;
   setEntries: (entries: Array<Entry>) => void;
+  setTestimony: (testimony: Testimony) => void;
   setUserId: (userId: string) => void;
   testimony: Testimony;
   updateEntry: (entry: Entry) => void;
@@ -38,6 +39,8 @@ export const useTreeStore = create<TreeStore>((set) => ({
     })),
 
   setEntries: (entries) => set({ entries }),
+
+  setTestimony: (testimony) => set({ testimony }),
 
   setUserId: (userId) => set({ userId }),
 

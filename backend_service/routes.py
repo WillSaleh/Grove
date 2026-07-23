@@ -25,7 +25,7 @@ from handlers.tags import (
     tags_collection_get,
     tag_delete,
 )
-from handlers.media import media_attach_to_entry, media_delete
+from handlers.media import media_attach_to_entry, media_delete, testimony_media_attach, testimony_media_delete
 from handlers.prayers import prayer_resource_set_answered
 from schemas.user import UserCreate, UserResponse, BioUpdate
 from schemas.tree_node import (
@@ -38,7 +38,7 @@ from schemas.tree_node import (
     VerseEntryResponse,
 )
 from schemas.tag import TagCreate, TagResponse
-from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
+from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse, TestimonyMediaResponse
 from schemas.prayer import PrayerAnsweredUpdate, PrayerCreate, PrayerResponse
 from schemas.verse import VerseCreate
 from storage import save_upload
@@ -89,6 +89,25 @@ async def set_user_bio(id: str, body: BioUpdate):
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+@router.post(
+    "/users/{user_id}/testimony/media",
+    response_model=TestimonyMediaResponse,
+    status_code=201,
+)
+async def attach_testimony_media(user_id: str, media: MediaCreate):
+    attached = await testimony_media_attach(user_id, media)
+    if attached is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return attached
+
+
+@router.delete("/users/{user_id}/testimony/media/{media_id}", status_code=204)
+async def delete_testimony_media(user_id: str, media_id: str):
+    deleted = await testimony_media_delete(user_id, media_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Media not found")
 
 
 EntryOrStandaloneResponse = EntryResponse | VerseEntryResponse | PrayerEntryResponse

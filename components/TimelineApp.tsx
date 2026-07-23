@@ -8,7 +8,7 @@ import { Toast } from "@/components/journey/Toast";
 import type { ToastState } from "@/components/journey/Toast";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { TopNav } from "@/components/shell/TopNav";
-import { fetchEntries, getOrCreateUserId } from "@/lib/api";
+import { fetchEntries, fetchTestimony, getOrCreateUserId } from "@/lib/api";
 import { FRIENDS } from "@/lib/friends";
 import { useTreeStore } from "@/store/useTreeStore";
 import type { TimelineView } from "@/types/tree";
@@ -21,6 +21,7 @@ export function TimelineApp() {
   const toastTimer = useRef<number | undefined>(undefined);
   const setUserId = useTreeStore((state) => state.setUserId);
   const setEntries = useTreeStore((state) => state.setEntries);
+  const setTestimony = useTreeStore((state) => state.setTestimony);
   const requestedUserId = useRef(false);
 
   useEffect(() => {
@@ -30,9 +31,10 @@ export function TimelineApp() {
       .then(async (userId) => {
         setUserId(userId);
         setEntries(await fetchEntries(userId));
+        setTestimony(await fetchTestimony(userId));
       })
       .catch((error) => console.error("Failed to load journey from backend:", error));
-  }, [setEntries, setUserId]);
+  }, [setEntries, setTestimony, setUserId]);
 
   const showToast = useCallback((message: string, icon: string) => {
     setToast({ icon, message });

@@ -53,7 +53,6 @@ export const SEED_JOURNEY: Journey = {
   entries: ENTRIES,
   testimony: {
     text: "For years I filled the ache with achievement — more work, more approval, and somehow never enough.\n\nIn 2021 my friend Priya prayed with me in her kitchen, and I finally let Jesus carry what I’d been dragging alone. He’s been remaking me ever since: gentler, freer, less afraid of being known. This timeline is my thank-you note to Him — one moment at a time.",
-    video: null,
-    photos: [PLACEHOLDER, PLACEHOLDER],
+    media: [PLACEHOLDER, PLACEHOLDER],
   },
 };

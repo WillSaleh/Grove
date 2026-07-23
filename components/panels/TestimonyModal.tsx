@@ -2,17 +2,17 @@
 
 import { Icon } from "@/components/Icon";
 import { mediaThumbStyle } from "@/lib/media";
-import type { Testimony } from "@/types/tree";
+import type { MediaItem, Testimony } from "@/types/tree";
 
 interface Props {
   draft: Testimony;
-  onAddPhotos: (files: FileList) => void;
+  onAddPhotos: (files: Array<File>) => void;
   onCancel: () => void;
   onChangeText: (text: string) => void;
-  onRemovePhoto: (index: number) => void;
+  onRemovePhoto: (item: MediaItem) => void;
   onRemoveVideo: () => void;
   onSave: () => void;
-  onSetVideo: (files: FileList) => void;
+  onSetVideo: (files: Array<File>) => void;
 }
 
 const LABEL_CLASS = "mb-[10px] text-xs font-semibold uppercase tracking-[.06em] text-muted-2";
@@ -27,7 +27,9 @@ export function TestimonyModal({
   onSave,
   onSetVideo,
 }: Props) {
-  const saveEnabled = Boolean(draft.text.trim() || draft.video || draft.photos.length);
+  const photos = draft.media.filter((item) => item.kind !== "video");
+  const video = draft.media.find((item) => item.kind === "video") ?? null;
+  const saveEnabled = Boolean(draft.text.trim() || draft.media.length);
 
   return (
     <div className="fixed inset-0 z-[80] flex overflow-y-auto p-5">
@@ -73,11 +75,11 @@ export function TestimonyModal({
           <div>
             <div className={LABEL_CLASS}>Photos</div>
             <div className="flex flex-wrap items-center gap-3">
-              {draft.photos.map((item, index) => (
+              {photos.map((item, index) => (
                 <div key={index} style={mediaThumbStyle(item, 80)}>
                   <div
                     className="absolute right-[5px] top-[5px] flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/[.62] text-xs text-white"
-                    onClick={() => onRemovePhoto(index)}
+                    onClick={() => onRemovePhoto(item)}
                   >
                     <Icon name="ph-x" weight="bold" />
                   </div>
@@ -90,8 +92,10 @@ export function TestimonyModal({
                   className="hidden"
                   multiple
                   onChange={(event) => {
+                    // event.target.files is a live FileList — read it into a plain array before
+                    // resetting the input, or the reset clears it out from under React's setState.
                     if (event.target.files) {
-                      onAddPhotos(event.target.files);
+                      onAddPhotos(Array.from(event.target.files));
                     }
                     event.target.value = "";
                   }}
@@ -103,9 +107,9 @@ export function TestimonyModal({
 
           <div>
             <div className={LABEL_CLASS}>Video</div>
-            {draft.video ? (
+            {video ? (
               <div className="relative overflow-hidden rounded-2xl border border-line-3 bg-black">
-                <video className="block max-h-[320px] w-full" controls src={draft.video} />
+                <video className="block max-h-[320px] w-full" controls src={video.url} />
                 <button
                   className="absolute right-[10px] top-[10px] flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full border-none bg-black/[.65] text-white"
                   onClick={onRemoveVideo}
@@ -123,8 +127,10 @@ export function TestimonyModal({
                   accept="video/*"
                   className="hidden"
                   onChange={(event) => {
+                    // event.target.files is a live FileList — read it into a plain array before
+                    // resetting the input, or the reset clears it out from under React's setState.
                     if (event.target.files) {
-                      onSetVideo(event.target.files);
+                      onSetVideo(Array.from(event.target.files));
                     }
                     event.target.value = "";
                   }}

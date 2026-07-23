@@ -47,8 +47,8 @@ export type Person = {
 
 export type Testimony = {
   text: string;
-  video: string | null;
-  photos: Array<MediaItem>;
+  // Same shape as Entry.media — kind distinguishes photo vs video, same as it does there.
+  media: Array<MediaItem>;
 };
 
 export type Journey = {

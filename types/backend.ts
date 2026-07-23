@@ -33,6 +33,23 @@ export type BackendTag = {
   user_id: string | null;
 };
 
+export type BackendTestimonyMedia = {
+  id: string;
+  user_id: string;
+  media_type: string;
+  url: string | null;
+  label: string | null;
+};
+
+export type BackendUser = {
+  id: string;
+  username: string;
+  display_name: string;
+  walking_since: string | null;
+  bio: string | null;
+  testimony_media: Array<BackendTestimonyMedia>;
+};
+
 export type StructuralTag = "root" | "milestone" | "reflection" | "gratitude";
 
 // Structural entries (root/milestone/reflection/gratitude) — the full shape with nested children.
