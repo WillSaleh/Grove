@@ -5,7 +5,9 @@ import psycopg
 from db import db_cursor
 from db.trees import postgres_tree_create_for_user
 from db.entries import postgres_entry_collection_get
+from db.media import postgres_media_get_for_user
 from schemas.user import UserCreate
+from storage import delete_upload
 
 
 def _user_with_tree(row: dict, entries: list) -> dict:
@@ -110,5 +112,12 @@ async def postgres_user_set_bio(user_id: str, bio: str):
 
 async def postgres_user_resource_delete(id: str):
     async with db_cursor(commit=True) as cur:
-        # Cascades to trees and their entries via FK constraints.
+        media_items = await postgres_media_get_for_user(cur, id)
+
+        # Cascades to trees, entries, and entries_media rows via FK constraints — but not the actual
+        # uploaded files on disk, so those are cleaned up separately below.
         await cur.execute("DELETE FROM users WHERE id = %s", (id,))
+
+    for item in media_items:
+        if item["url"]:
+            delete_upload(item["url"])

@@ -17,6 +17,7 @@ import {
   deleteBackendEntry,
   getVerseOfTheDay,
   setPrayerAnswered,
+  syncEntryMedia,
   updateBackendEntry,
   type VerseOfTheDay,
 } from "@/lib/api";
@@ -62,7 +63,8 @@ function buildYears(entries: Array<Entry>, since: number): Array<number> {
 function filesToMedia(files: FileList): Array<MediaItem> {
   return Array.from(files).map((file) => ({
     kind: file.type.startsWith("video") ? "video" : "image",
-    url: URL.createObjectURL(file),
+    url: URL.createObjectURL(file), // local preview only — the real, persistable URL comes from uploading `file`
+    file,
   }));
 }
 
@@ -306,9 +308,14 @@ export function JourneyView({ onShowToast }: Props) {
     if (!userId) return;
     try {
       if (form.mode === "edit") {
-        updateEntry(await updateBackendEntry(userId, entry.id, entry));
+        const saved = await updateBackendEntry(userId, entry.id, entry);
+        const previousMedia = entries.find((e) => e.id === entry.id)?.media ?? [];
+        saved.media = await syncEntryMedia(userId, saved.id, previousMedia, entry.media ?? []);
+        updateEntry(saved);
       } else {
-        addEntry(await createEntry(userId, entry));
+        const saved = await createEntry(userId, entry);
+        saved.media = await syncEntryMedia(userId, saved.id, [], entry.media ?? []);
+        addEntry(saved);
       }
     } catch (error) {
       console.error("Failed to save entry:", error);

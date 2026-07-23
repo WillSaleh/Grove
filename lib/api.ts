@@ -1,7 +1,7 @@
 // Talks to backend_service. Override the base URL (e.g. for a Cloudflare tunnel demo) via NEXT_PUBLIC_API_BASE_URL.
 import { backendEntryToEntry, entryToCreateRequest, entryToUpdateRequest } from "@/lib/entryMapping";
 import type { BackendEntry } from "@/types/backend";
-import type { Entry } from "@/types/tree";
+import type { Entry, MediaItem } from "@/types/tree";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -106,6 +106,66 @@ export async function updateBackendEntry(userId: string, entryId: string, entry:
 
   const updated: BackendEntry = await res.json();
   return backendEntryToEntry(updated);
+}
+
+export async function uploadMedia(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/media/upload`, { method: "POST", body: formData });
+  if (!res.ok) {
+    throw new Error(`Failed to upload file: ${res.status}`);
+  }
+
+  const data: { url: string } = await res.json();
+  return data.url;
+}
+
+async function attachMedia(userId: string, entryId: string, mediaType: string, url: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/users/${userId}/entries/${entryId}/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ media_type: mediaType, url }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to attach media: ${res.status}`);
+  }
+
+  const data: { id: string } = await res.json();
+  return data.id;
+}
+
+async function deleteMedia(userId: string, entryId: string, mediaId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/users/${userId}/entries/${entryId}/media/${mediaId}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(`Failed to delete media: ${res.status}`);
+  }
+}
+
+// Reconciles a form's media list against what's already persisted for this entry: uploads + attaches
+// newly picked files, deletes items the user removed, and leaves already-persisted items untouched.
+// Returns the media array reflecting what's now actually persisted, for storing in local state.
+export async function syncEntryMedia(
+  userId: string,
+  entryId: string,
+  previousMedia: Array<MediaItem>,
+  nextMedia: Array<MediaItem>,
+): Promise<Array<MediaItem>> {
+  const keptMediaIds = new Set(nextMedia.map((item) => item.mediaId).filter(Boolean));
+  const removed = previousMedia.filter((item) => item.mediaId && !keptMediaIds.has(item.mediaId));
+  await Promise.all(removed.map((item) => deleteMedia(userId, entryId, item.mediaId as string)));
+
+  return Promise.all(
+    nextMedia
+      .filter((item) => item.kind !== "placeholder")
+      .map(async (item) => {
+        if (!item.file) return item; // already persisted, unchanged
+
+        const mediaType = item.kind === "video" ? "video" : "photo";
+        const url = await uploadMedia(item.file);
+        const mediaId = await attachMedia(userId, entryId, mediaType, url);
+        return { kind: item.kind, url, mediaId };
+      }),
+  );
 }
 
 export async function getVerseOfTheDay(): Promise<VerseOfTheDay> {

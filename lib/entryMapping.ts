@@ -23,6 +23,7 @@ function mapBackendMedia(media: Array<BackendMedia>): Array<MediaItem> {
   return media.map((item) => ({
     kind: item.media_type === "video" ? "video" : "image",
     url: item.url ?? undefined,
+    mediaId: item.id,
   }));
 }
 

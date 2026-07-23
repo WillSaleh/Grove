@@ -7,6 +7,7 @@ from db.tags import postgres_tag_get_by_id
 from db.trees import postgres_tree_id_for_user
 from db.verses import postgres_verses_create_for_entry, postgres_verses_get_for_entry
 from schemas.tree_node import EntryCreate, EntryUpdate, PrayerEntryCreate, VerseEntryCreate
+from storage import delete_upload
 
 _STANDALONE_ENTRY_FIELDS = (
     "heading",
@@ -221,10 +222,21 @@ async def postgres_entry_collection_get(user_id: str):
 
 async def postgres_entry_resource_delete(user_id: str, entry_id: str):
     async with db_cursor(commit=True) as cur:
+        media_items = await postgres_media_get_for_entry(cur, entry_id)
+
         await cur.execute(
             """
             DELETE FROM entries
             WHERE id = %s AND tree_id = (SELECT id FROM trees WHERE user_id = %s)
+            RETURNING id
             """,
             (entry_id, user_id),
         )
+        deleted = await cur.fetchone()
+
+    # entries_media rows are cascade-deleted by the FK, but the actual uploaded files on disk aren't —
+    # only clean those up once we know the entry (and thus its media rows) really was deleted.
+    if deleted:
+        for item in media_items:
+            if item["url"]:
+                delete_upload(item["url"])

@@ -25,7 +25,7 @@ from handlers.tags import (
     tags_collection_get,
     tag_delete,
 )
-from handlers.media import media_attach_to_entry
+from handlers.media import media_attach_to_entry, media_delete
 from handlers.prayers import prayer_resource_set_answered
 from schemas.user import UserCreate, UserResponse, BioUpdate
 from schemas.tree_node import (
@@ -200,6 +200,13 @@ async def attach_media(user_id: str, entry_id: str, media: MediaCreate):
     if attached is None:
         raise HTTPException(status_code=404, detail="Entry not found")
     return attached
+
+
+@router.delete("/users/{user_id}/entries/{entry_id}/media/{media_id}", status_code=204)
+async def delete_media(user_id: str, entry_id: str, media_id: str):
+    deleted = await media_delete(user_id, entry_id, media_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Media not found")
 
 
 @router.put("/users/{user_id}/prayers/{prayer_id}/answered", response_model=PrayerResponse)

@@ -7,6 +7,11 @@ export type EntryType = "milestone" | "verse" | "gratitude" | "prayer" | "reflec
 export type MediaItem = {
   kind: "image" | "video" | "placeholder";
   url?: string;
+  // Present only for a freshly-picked, not-yet-uploaded file — the raw File to upload on save.
+  file?: File;
+  // The backend's own media row id, present only once this item has actually been persisted.
+  // Needed to call the delete-media endpoint later; not shown anywhere in the UI.
+  mediaId?: string;
 };
 
 export type Entry = {
