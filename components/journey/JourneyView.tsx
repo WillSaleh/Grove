@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 
 import { Icon } from "@/components/Icon";
@@ -12,9 +12,15 @@ import { DetailCard } from "@/components/panels/DetailCard";
 import { blankForm, canSaveForm, EntryFormModal } from "@/components/panels/EntryFormModal";
 import type { EntryForm } from "@/components/panels/EntryFormModal";
 import { TestimonyModal } from "@/components/panels/TestimonyModal";
-import { createEntry, deleteBackendEntry, setPrayerAnswered, updateBackendEntry } from "@/lib/api";
+import {
+  createEntry,
+  deleteBackendEntry,
+  getVerseOfTheDay,
+  setPrayerAnswered,
+  updateBackendEntry,
+  type VerseOfTheDay,
+} from "@/lib/api";
 import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY } from "@/lib/timeline";
-import { verseOfTheDay } from "@/lib/verses";
 import { useTreeStore } from "@/store/useTreeStore";
 import type { Entry, EntryType, MediaItem, Testimony, ZoomLevel } from "@/types/tree";
 
@@ -85,6 +91,7 @@ export function JourneyView({ onShowToast }: Props) {
   const [form, setForm] = useState<EntryForm>(() => blankForm(latestYear(entries), latestMonthIn(entries, latestYear(entries)), 15));
   const [testimonyOpen, setTestimonyOpen] = useState(false);
   const [testimonyDraft, setTestimonyDraft] = useState<Testimony>({ photos: [], text: "", video: null });
+  const [verseOfTheDay, setVerseOfTheDay] = useState<VerseOfTheDay | null>(null);
 
   const scrollElRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -105,7 +112,12 @@ export function JourneyView({ onShowToast }: Props) {
   const selectedEntry = selectedId ? entries.find((entry) => entry.id === selectedId) ?? null : null;
   const firstName = person.name.split(" ")[0];
   const hasTestimony = Boolean(testimony.text.trim() || testimony.video || testimony.photos.length);
-  const vod = verseOfTheDay();
+
+  useEffect(() => {
+    getVerseOfTheDay()
+      .then(setVerseOfTheDay)
+      .catch((error) => console.error("Failed to load verse of the day:", error));
+  }, []);
 
   const handleWheel = useCallback((event: WheelEvent) => {
     const element = scrollElRef.current;
@@ -502,8 +514,8 @@ export function JourneyView({ onShowToast }: Props) {
         onSelectYear={selectYear}
         personInitials={person.initials}
         testimonyLabel={hasTestimony ? "Edit Testimony" : "Share Testimony"}
-        votRef={vod.ref}
-        votText={vod.text}
+        votRef={verseOfTheDay?.ref ?? ""}
+        votText={verseOfTheDay?.text ?? ""}
         welcomeText={`Welcome back, ${firstName}!`}
         years={years}
       />

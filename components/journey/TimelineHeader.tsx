@@ -79,13 +79,15 @@ export function TimelineHeader({
           </div>
         </div>
 
-        <div className="hidden max-w-[330px] flex-none text-right opacity-[.62] md:block">
-          <div className="inline-flex items-center justify-end gap-[6px] text-[10px] font-bold uppercase tracking-[.14em] text-muted-2">
-            <Icon className="text-[13px]" name="ph-book-bookmark" weight="duotone" /> Verse of the Day
+        {votText ? (
+          <div className="hidden max-w-[330px] flex-none text-right opacity-[.62] md:block">
+            <div className="inline-flex items-center justify-end gap-[6px] text-[10px] font-bold uppercase tracking-[.14em] text-muted-2">
+              <Icon className="text-[13px]" name="ph-book-bookmark" weight="duotone" /> Verse of the Day
+            </div>
+            <div className="mt-[5px] font-display text-[14.5px] italic leading-[1.45] text-brand">&ldquo;{votText}&rdquo;</div>
+            <div className="mt-1 text-[11px] font-semibold tracking-[.02em] text-muted-2">{votRef}</div>
           </div>
-          <div className="mt-[5px] font-display text-[14.5px] italic leading-[1.45] text-brand">&ldquo;{votText}&rdquo;</div>
-          <div className="mt-1 text-[11px] font-semibold tracking-[.02em] text-muted-2">{votRef}</div>
-        </div>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-[14px]">
