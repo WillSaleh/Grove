@@ -306,6 +306,8 @@ export function JourneyView({ onShowToast }: Props) {
       form.type === "verse"
         ? buildDisplayVerseRef(form.bookCode, form.chapter.trim(), form.verse.trim(), form.verseEnd.trim() || undefined)
         : "";
+    // Accept any 4-digit year the user typed; fall back to the year in view if the field was left blank.
+    const year = form.year >= 1000 && form.year <= 9999 ? form.year : activeYear;
     const entry: Entry = {
       answeredNote: form.answeredNote.trim(),
       answered: form.answered,
@@ -319,7 +321,7 @@ export function JourneyView({ onShowToast }: Props) {
       title: form.title.trim(),
       translation: form.translation.trim() || "NIV",
       type: form.type,
-      year: Number(form.year),
+      year,
     };
 
     if (!userId) return;
