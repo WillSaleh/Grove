@@ -13,9 +13,15 @@ export const MONTHS_LONG = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-// A fixed "today" so the seeded demo always opens on populated months (Aug 2025).
-// Swap for `new Date()` once the timeline reads live data.
-export const TODAY = { year: 2025, month: 7, day: 24 };
+// How many years before `person.since` the year picker still allows.
+export const YEARS_BEFORE_SINCE = 3;
+
+function todayParts() {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+}
+
+export const TODAY = todayParts();
 
 // Timeline geometry (px), ported from the design.
 export const PAD = 64; // leading padding before the first column in month mode

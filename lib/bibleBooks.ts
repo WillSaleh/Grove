@@ -84,6 +84,100 @@ const CODE_TO_BOOK_NAME: Record<string, string> = Object.fromEntries(
 const REF_PATTERN = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/;
 const BACKEND_REF_PATTERN = /^([A-Z0-9]{2,3})\s+(\d+):(\d+)(?:-(\d+))?(?:\s+[A-Z]{2,4})?$/i;
 
+export const BIBLE_VERSIONS = [
+  "AMP",
+  "ASV",
+  "BSB",
+  "CEV",
+  "CSB",
+  "ESV",
+  "GNT",
+  "HCSB",
+  "KJV",
+  "LSB",
+  "MSG",
+  "NASB",
+  "NET",
+  "NIV",
+  "NKJV",
+  "NLT",
+  "WEB",
+] as const;
+
+export type BibleVersion = (typeof BIBLE_VERSIONS)[number];
+
+const CANONICAL_BOOK_CODES = [
+  "GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT", "1SA", "2SA", "1KI", "2KI", "1CH", "2CH",
+  "EZR", "NEH", "EST", "JOB", "PSA", "PRO", "ECC", "SNG", "ISA", "JER", "LAM", "EZK", "DAN", "HOS",
+  "JOL", "AMO", "OBA", "JON", "MIC", "NAM", "HAB", "ZEP", "HAG", "ZEC", "MAL", "MAT", "MRK", "LUK",
+  "JHN", "ACT", "ROM", "1CO", "2CO", "GAL", "EPH", "PHP", "COL", "1TH", "2TH", "1TI", "2TI", "TIT",
+  "PHM", "HEB", "JAS", "1PE", "2PE", "1JN", "2JN", "3JN", "JUD", "REV",
+] as const;
+
+export const BIBLE_BOOKS = CANONICAL_BOOK_CODES.map((code) => ({
+  code,
+  name: CODE_TO_BOOK_NAME[code] ?? code,
+}));
+
+export type ParsedVerseRef = {
+  bookCode: string;
+  chapter: string;
+  verse: string;
+  verseEnd: string;
+};
+
+export function buildDisplayVerseRef(
+  bookCode: string,
+  chapter: string,
+  verse: string,
+  verseEnd?: string,
+): string {
+  const name = CODE_TO_BOOK_NAME[bookCode.toUpperCase()] ?? bookCode;
+  const verseRange = verseEnd?.trim() ? `${verse}-${verseEnd.trim()}` : verse;
+  return `${name} ${chapter}:${verseRange}`;
+}
+
+export function buildBackendVerseRef(
+  bookCode: string,
+  chapter: string,
+  verse: string,
+  verseEnd?: string,
+  translation?: string,
+): string {
+  const code = bookCode.toUpperCase();
+  const verseRange = verseEnd?.trim() ? `${verse}-${verseEnd.trim()}` : verse;
+  const suffix = translation?.trim() ? ` ${translation.trim().toUpperCase()}` : "";
+  return `${code} ${chapter}:${verseRange}${suffix}`;
+}
+
+export function parseDisplayVerseRef(ref: string): ParsedVerseRef | null {
+  const trimmed = ref.trim();
+  const backendMatch = BACKEND_REF_PATTERN.exec(trimmed);
+  if (backendMatch) {
+    const [, code, chapter, verse, verseEnd] = backendMatch;
+    return {
+      bookCode: code.toUpperCase(),
+      chapter,
+      verse,
+      verseEnd: verseEnd ?? "",
+    };
+  }
+
+  const match = REF_PATTERN.exec(trimmed);
+  if (!match) return null;
+
+  const [, bookName, chapter, verse, verseEnd] = match;
+  const bookCode = BOOK_NAME_TO_CODE[bookName.trim().toLowerCase()];
+  if (!bookCode) return null;
+
+  return {
+    bookCode,
+    chapter,
+    verse,
+    verseEnd: verseEnd ?? "",
+  };
+}
+
 // "Jeremiah 29:11" + "NIV" -> "JER 29:11 NIV". Falls back to the raw ref if the book name isn't recognized
 // (the backend will still create the entry — verse_text/translation just won't auto-fetch).
 export function toBackendVerseRef(ref: string, translation?: string): string {

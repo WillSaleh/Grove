@@ -21,7 +21,8 @@ import {
   updateBackendEntry,
   type VerseOfTheDay,
 } from "@/lib/api";
-import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY } from "@/lib/timeline";
+import { buildDisplayVerseRef, parseDisplayVerseRef } from "@/lib/bibleBooks";
+import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY, YEARS_BEFORE_SINCE } from "@/lib/timeline";
 import { verseOfTheDay as localVerseOfTheDay } from "@/lib/verses";
 import { useTreeStore } from "@/store/useTreeStore";
 import type { Entry, EntryType, MediaItem, Testimony, ZoomLevel } from "@/types/tree";
@@ -52,7 +53,11 @@ function latestMonthIn(entries: Array<Entry>, year: number): number {
 
 function buildYears(entries: Array<Entry>, since: number): Array<number> {
   const entryYears = entries.map((entry) => entry.year);
-  const min = Math.min(since, ...(entryYears.length ? entryYears : [since]));
+  const min = Math.min(
+    since - YEARS_BEFORE_SINCE,
+    since,
+    ...(entryYears.length ? entryYears : [since]),
+  );
   const max = Math.max(TODAY.year, since, ...(entryYears.length ? entryYears : [since]));
   const years: Array<number> = [];
   for (let year = min; year <= max; year += 1) {
@@ -241,22 +246,26 @@ export function JourneyView({ onShowToast }: Props) {
     if (!selectedEntry) {
       return;
     }
+    const parsed =
+      selectedEntry.type === "verse" ? parseDisplayVerseRef(selectedEntry.ref ?? "") : null;
     setForm({
       answered: Boolean(selectedEntry.answered),
       answeredNote: selectedEntry.answeredNote ?? "",
       body: selectedEntry.body ?? "",
+      bookCode: parsed?.bookCode ?? "PSA",
+      chapter: parsed?.chapter ?? "",
       day: String(selectedEntry.day),
       id: selectedEntry.id,
       media: [...(selectedEntry.media ?? [])],
       mode: "edit",
       month: selectedEntry.month,
       note: selectedEntry.note ?? "",
-      ref: selectedEntry.ref ?? "",
       step: "fields",
       title: selectedEntry.title ?? "",
       translation: selectedEntry.translation ?? "NIV",
       type: selectedEntry.type,
-      verseText: selectedEntry.verseText ?? "",
+      verse: parsed?.verse ?? "",
+      verseEnd: parsed?.verseEnd ?? "",
       year: selectedEntry.year,
     });
     setFormOpen(true);
@@ -290,6 +299,10 @@ export function JourneyView({ onShowToast }: Props) {
       return;
     }
     const day = Math.max(1, Math.min(31, Number.parseInt(form.day, 10) || 1));
+    const verseRef =
+      form.type === "verse"
+        ? buildDisplayVerseRef(form.bookCode, form.chapter.trim(), form.verse.trim(), form.verseEnd.trim() || undefined)
+        : "";
     const entry: Entry = {
       answeredNote: form.answeredNote.trim(),
       answered: form.answered,
@@ -299,11 +312,10 @@ export function JourneyView({ onShowToast }: Props) {
       media: form.media,
       month: Number(form.month),
       note: form.note.trim(),
-      ref: form.ref.trim(),
+      ref: verseRef,
       title: form.title.trim(),
       translation: form.translation.trim() || "NIV",
       type: form.type,
-      verseText: form.verseText.trim(),
       year: Number(form.year),
     };
 

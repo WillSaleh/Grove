@@ -168,6 +168,16 @@ export async function syncEntryMedia(
   );
 }
 
+export async function fetchVerseText(verseRef: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/verse?verse_ref=${encodeURIComponent(verseRef)}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch verse: ${res.status}`);
+  }
+
+  const data: { verse_text: string } = await res.json();
+  return data.verse_text.trim();
+}
+
 export async function getVerseOfTheDay(): Promise<VerseOfTheDay> {
   const res = await fetch(`${API_BASE}/verse_of_the_day`);
   if (!res.ok) {
