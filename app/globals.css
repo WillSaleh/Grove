@@ -1,10 +1,108 @@
-/* Global styles + the warm "Grove" palette. Every color token is defined ONCE here in the @theme
-   block and consumed as a Tailwind class (bg-parchment, text-ink, …); never hard-code hex in a component.
-   Data-driven, per-entry-type colors are the one exception — those come from ENTRY_TYPES in lib/entryTypes.ts
-   and are applied as inline styles, because a 5-type × N-state color matrix is the wrong thing to force into classes. */
+/* Grove global styles.
+   Theming works in two layers:
+   1. Runtime CSS variables (--bg, --card, --accent, --cat-*, …) defined for light (:root) and dark
+      ([data-theme="dark"]). These flip at runtime when <html data-theme> changes — that's how dark mode works.
+   2. Tailwind @theme tokens alias those runtime vars (e.g. --color-card: var(--card)) so components can
+      use clean classes (bg-card, text-content, text-accent, …) that are automatically theme-reactive.
+   The older warm "parchment/brand" tokens remain for the not-yet-re-themed My Journey screens. */
 @import "tailwindcss";
 
+:root {
+  --bg: #f8f8f6;
+  --card: #ffffff;
+  --input: #f1f1ee;
+  --text: #1c1c1e;
+  --text-soft: #3a3a3c;
+  --muted: #6e6e73;
+  --muted2: #8e8e93;
+  --faint: #aeaeb2;
+  --border: #ecece8;
+  --border-strong: #deded9;
+  --divider: #eeeeea;
+  --accent: #01356d;
+  --accent-strong: #012a57;
+  --timeline: #01356d;
+  --timeline-strong: #012a57;
+  --glass: #ffffff;
+  --scrim: rgba(28, 28, 30, 0.22);
+  --ring: #ffffff;
+  --cat-orange: #c4701c;
+  --cat-rose: #c24e6e;
+  --cat-green: #3e7d5a;
+  --cat-amber: #b0791f;
+  --cat-emerald: #2f8f5b;
+  --cat-mustard: #b8892a;
+  --cat-coral: #d65a47;
+  --cat-forest: #2e6e4e;
+  --cat-gold: #b08512;
+  --cat-blue: #3e77c0;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.07);
+  --shadow-3: 0 18px 48px -20px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --card: #2c2c2e;
+  --input: #3a3a3c;
+  --text: #f5f5f7;
+  --text-soft: #e5e5ea;
+  --muted: #aaaaaf;
+  --muted2: #8e8e93;
+  --faint: #6b6b70;
+  --border: color-mix(in srgb, var(--glass) 10%, transparent);
+  --border-strong: color-mix(in srgb, var(--glass) 17%, transparent);
+  --divider: color-mix(in srgb, var(--glass) 8%, transparent);
+  --accent: #04b7e7;
+  --accent-strong: #0396c7;
+  --timeline: #04b7e7;
+  --timeline-strong: #0396c7;
+  --glass: #2c2c2e;
+  --scrim: rgba(0, 0, 0, 0.5);
+  --ring: #2c2c2e;
+  --cat-orange: #f2a93c;
+  --cat-rose: #ff7098;
+  --cat-green: #4fd08d;
+  --cat-amber: #e8b84c;
+  --cat-emerald: #42ce80;
+  --cat-mustard: #e4b33e;
+  --cat-coral: #ff7a63;
+  --cat-forest: #4fbe82;
+  --cat-gold: #e8c24a;
+  --cat-blue: #5aa6f5;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-3: 0 18px 48px -20px rgba(0, 0, 0, 0.65);
+}
+
 @theme {
+  /* New theme-reactive tokens (alias the runtime vars above) — used by Connect and the re-skin. */
+  --color-canvas: var(--bg);
+  --color-card: var(--card);
+  --color-field: var(--input);
+  --color-content: var(--text);
+  --color-content-soft: var(--text-soft);
+  --color-subtle: var(--muted);
+  --color-subtle-2: var(--muted2);
+  --color-ghost: var(--faint);
+  --color-edge: var(--border);
+  --color-edge-strong: var(--border-strong);
+  --color-divide: var(--divider);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-timeline: var(--timeline);
+  --color-cat-orange: var(--cat-orange);
+  --color-cat-rose: var(--cat-rose);
+  --color-cat-green: var(--cat-green);
+  --color-cat-amber: var(--cat-amber);
+  --color-cat-emerald: var(--cat-emerald);
+  --color-cat-mustard: var(--cat-mustard);
+  --color-cat-coral: var(--cat-coral);
+  --color-cat-forest: var(--cat-forest);
+  --color-cat-gold: var(--cat-gold);
+  --color-cat-blue: var(--cat-blue);
+
+  /* Legacy warm tokens — still used by My Journey screens until they're re-themed. */
   --color-parchment: #f8f2ea;
   --color-parchment-deep: #f4ede4;
   --color-ink: #32403f;
@@ -27,9 +125,10 @@
   --color-type-prayer: #8a6b32;
   --color-type-reflection: #527257;
 
-  --font-sans: var(--font-inter), -apple-system, "SF Pro Text", system-ui, sans-serif;
-  --font-display: var(--font-inter), -apple-system, "SF Pro Display", system-ui, sans-serif;
+  --font-sans: -apple-system, "SF Pro Text", system-ui, var(--font-inter), sans-serif;
+  --font-display: -apple-system, "SF Pro Display", system-ui, var(--font-inter), sans-serif;
   --font-logo: var(--font-sora), -apple-system, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
 }
 
 * {
@@ -43,12 +142,43 @@ body {
 }
 
 body {
-  background: var(--color-parchment);
-  color: var(--color-ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.01em;
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+/* Applied briefly during a theme switch so every surface cross-fades instead of snapping. */
+html.theme-anim,
+html.theme-anim * {
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease,
+    border-color 0.4s ease,
+    fill 0.4s ease,
+    box-shadow 0.4s ease !important;
 }
 
 textarea {
@@ -56,7 +186,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(74, 87, 89, 0.18);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 :focus {
@@ -68,7 +198,7 @@ a:focus-visible,
 select:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
   border-radius: 6px;
 }
@@ -76,8 +206,8 @@ select:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
   outline: none;
-  border-color: var(--color-brand) !important;
-  box-shadow: 0 0 0 3px rgba(74, 87, 89, 0.18);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -100,13 +230,13 @@ textarea:focus-visible {
 }
 
 .gr-scroll::-webkit-scrollbar-thumb {
-  background: rgba(74, 87, 89, 0.22);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
   border-radius: 999px;
-  border: 3px solid var(--color-parchment-deep);
+  border: 3px solid var(--bg);
 }
 
 .gr-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(74, 87, 89, 0.4);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* Compact timeline node: lift above neighbors and reveal its title pill on hover */
@@ -121,7 +251,7 @@ textarea:focus-visible {
   white-space: nowrap;
   font-weight: 600;
   font-size: 13px;
-  color: var(--color-ink);
+  color: var(--text);
   transition:
     max-width 0.34s cubic-bezier(0.22, 0.61, 0.36, 1),
     opacity 0.26s ease,
@@ -134,8 +264,7 @@ textarea:focus-visible {
   padding: 0 12px 0 4px;
 }
 
-/* Expanded (month-mode) card lifts on hover. !important beats the inline base transform.
-   will-change keeps the lift on the compositor so the first hover doesn't hitch. */
+/* Expanded (month-mode) card lifts on hover. !important beats the inline base transform. */
 .gr-card-lift {
   will-change: transform;
 }
@@ -144,15 +273,14 @@ textarea:focus-visible {
   transform: translateX(-50%) translateY(-6px) !important;
 }
 
-/* Month hover band (year view) is pure CSS :hover — hovering never re-renders the timeline,
-   so a card's hover animation is never interrupted mid-flight. */
+/* Month hover band (year view) is pure CSS :hover so hovering never re-renders the timeline. */
 .gr-band {
   background: transparent;
   transition: background 0.18s ease;
 }
 
 .gr-band:hover {
-  background: rgba(255, 255, 255, 0.75);
+  background: color-mix(in srgb, var(--glass) 75%, transparent);
 }
 
 /* Animations ported from the Timeline_V2 design */
@@ -186,6 +314,10 @@ textarea:focus-visible {
 }
 @keyframes gr-drawer {
   from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gr-cardin {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes gr-toast {

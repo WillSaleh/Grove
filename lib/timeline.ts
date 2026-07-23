@@ -179,8 +179,8 @@ export function buildTimelineNodes({
     const cardStyle: CSSProperties = compact
       ? {
           alignItems: "center",
-          background: "#fff",
-          border: "1px solid #e4ddd0",
+          background: "var(--card)",
+          border: "1px solid var(--border)",
           borderRadius: 999,
           bottom: AXIS_OFFSET + GAP + stackIdx * STEP,
           cursor: "pointer",
@@ -195,8 +195,8 @@ export function buildTimelineNodes({
           ...(motion ? { animation: "gr-risec .5s cubic-bezier(.22,.61,.36,1) backwards", animationDelay: `${index * 0.05}s` } : {}),
         }
       : {
-          background: "#fff",
-          border: "1px solid #e4ddd0",
+          background: "var(--card)",
+          border: "1px solid var(--border)",
           borderRadius: 18,
           bottom: AXIS_OFFSET + GAP,
           boxShadow: "none",
@@ -213,11 +213,11 @@ export function buildTimelineNodes({
 
     const dotStyle: CSSProperties = isCurrentMonth
       ? {
-          background: "#5c7a5e",
-          border: "4px solid #fff",
+          background: "var(--timeline)",
+          border: "4px solid var(--ring)",
           borderRadius: 999,
           bottom: AXIS_OFFSET,
-          boxShadow: "0 0 0 2px #5c7a5e",
+          boxShadow: "0 0 0 2px var(--timeline)",
           height: 22,
           left: "50%",
           position: "absolute",
@@ -226,8 +226,8 @@ export function buildTimelineNodes({
           zIndex: 3,
         }
       : {
-          background: "#fff",
-          border: "5px solid #d7cfc1",
+          background: "var(--card)",
+          border: "5px solid var(--border-strong)",
           borderRadius: 999,
           bottom: AXIS_OFFSET,
           height: 22,
@@ -242,7 +242,7 @@ export function buildTimelineNodes({
       answered: !compact && isAnswered,
       ariaLabel: `${entry.type}: ${entry.title || entry.body || entry.ref || ""}`,
       badgeStyle: isAnswered
-        ? { alignItems: "center", background: "#4a5759", borderRadius: 999, color: "#fff", display: "inline-flex", fontSize: 11, fontWeight: 600, gap: 5, marginTop: 8, padding: "3px 10px" }
+        ? { alignItems: "center", background: "var(--accent)", borderRadius: 999, color: "#fff", display: "inline-flex", fontSize: 11, fontWeight: 600, gap: 5, marginTop: 8, padding: "3px 10px" }
         : { alignItems: "center", background: meta.tint, borderRadius: 999, color: meta.color, display: "inline-flex", fontSize: 11, fontWeight: 600, gap: 5, marginTop: 8, padding: "3px 9px" },
       blooming: bloomId === entry.id,
       cardStyle,
@@ -265,13 +265,13 @@ export function buildTimelineNodes({
       photoPlaceholder: !compact && hasPhoto && !photoUrl,
       photoUrl: !compact && hasPhoto ? photoUrl : null,
       showBody: !compact && entry.type !== "verse",
-      showDate: !compact,
+      showDate: false,
       showHoverTitle: compact,
       showTitle: !compact,
       showTypeLabel: !compact,
       snippet: entry.type === "verse" ? truncate(entry.verseText, 72) : truncate(entry.body, 72),
       stemStyle: {
-        background: isAnswered ? "rgba(74,87,89,.6)" : "#d7cfc1",
+        background: isAnswered ? "color-mix(in srgb, var(--accent) 60%, transparent)" : "var(--border-strong)",
         borderRadius: 999,
         bottom: AXIS_OFFSET,
         height: (compact ? GAP + stackIdx * STEP : GAP) - 2,
@@ -299,8 +299,8 @@ export function buildTimelineNodes({
         blooming: false,
         cardStyle: {
           alignItems: "center",
-          background: "rgba(74,87,89,.1)",
-          border: "1px solid rgba(74,87,89,.3)",
+          background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
           borderRadius: 999,
           bottom: AXIS_OFFSET + GAP + stackIdx * STEP,
           cursor: "pointer",
@@ -319,7 +319,7 @@ export function buildTimelineNodes({
         dotStyle: { display: "none" },
         entryId: null,
         hasPhoto: false,
-        iconChipStyle: { alignItems: "center", background: "#4a5759", borderRadius: 999, color: "#fff", display: "flex", flex: "0 0 auto", height: 38, justifyContent: "center", width: 38 },
+        iconChipStyle: { alignItems: "center", background: "var(--accent)", borderRadius: 999, color: "#fff", display: "flex", flex: "0 0 auto", height: 38, justifyContent: "center", width: 38 },
         iconName: "ph-plus",
         id: `ovf-${month}`,
         isOverflow: true,
@@ -336,7 +336,7 @@ export function buildTimelineNodes({
         showTypeLabel: false,
         snippet: "",
         stemStyle: {
-          background: "#d7cfc1",
+          background: "var(--border-strong)",
           borderRadius: 999,
           bottom: AXIS_OFFSET,
           height: GAP + stackIdx * STEP - 2,

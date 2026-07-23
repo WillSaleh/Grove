@@ -9,6 +9,7 @@ import type { TimelineNode } from "@/lib/timeline";
 export type TrackMonth = {
   bandStyle: CSSProperties;
   guideStyle: CSSProperties;
+  labelActive?: boolean; // year mode: whether this month is the active one (drives label color)
   labelStyle: CSSProperties;
   month: number | null; // set (and clickable → zoom in) in year mode; null for month-mode day markers
   name: string;
@@ -35,7 +36,7 @@ interface Props {
 }
 
 const PHOTO_IMG_STYLE: CSSProperties = {
-  border: "1px solid #e4ddd0",
+  border: "1px solid var(--border)",
   borderRadius: 12,
   display: "block",
   height: "auto",
@@ -44,8 +45,8 @@ const PHOTO_IMG_STYLE: CSSProperties = {
 
 const PHOTO_PLACEHOLDER_STYLE: CSSProperties = {
   aspectRatio: "16/9",
-  background: "#f2f2f4",
-  border: "1px solid #e4ddd0",
+  background: "var(--input)",
+  border: "1px solid var(--border)",
   borderRadius: 12,
   width: "100%",
 };
@@ -106,7 +107,7 @@ export function TimelineTrack({
                 <div style={track.labelStyle}>{track.name}</div>
               ) : (
                 <button
-                  className="border-none bg-transparent p-0"
+                  className={`border-none bg-transparent p-0 hover:text-accent ${track.labelActive ? "text-accent" : "text-[#b0b0b5]"}`}
                   onClick={() => onOpenMonth(track.month as number)}
                   style={track.labelStyle}
                   type="button"
@@ -166,22 +167,20 @@ export function TimelineTrack({
                 </div>
 
                 {node.showTitle ? (
-                  <div className="mt-2 text-sm font-semibold leading-[1.25] text-ink">{node.title}</div>
+                  <div className="mt-2 text-sm font-semibold leading-[1.25] text-content">{node.title}</div>
                 ) : null}
 
                 {node.isVerse ? (
-                  <div className="mt-1 font-display text-[12.5px] italic leading-[1.4] text-muted">{node.snippet}</div>
+                  <div className="mt-1 font-display text-[12.5px] italic leading-[1.4] text-subtle">{node.snippet}</div>
                 ) : null}
 
-                {node.showBody ? <div className="mt-1 text-[12.5px] leading-[1.4] text-muted">{node.snippet}</div> : null}
+                {node.showBody ? <div className="mt-1 text-[12.5px] leading-[1.4] text-subtle">{node.snippet}</div> : null}
 
                 {node.answered ? (
                   <div style={node.badgeStyle}>
                     <Icon name="ph-check-circle" weight="fill" /> Answered
                   </div>
                 ) : null}
-
-                {node.showDate ? <div className="mt-[6px] text-[11.5px] text-muted-2">{node.dateLabel}</div> : null}
               </div>
 
               {node.blooming ? (
@@ -196,9 +195,9 @@ export function TimelineTrack({
 
       {isEmpty ? (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <Icon className="text-[40px] text-faint" name="ph-plant" weight="duotone" />
-          <div className="mt-[10px] font-display text-xl text-muted">{emptyText}</div>
-          <div className="mt-1 text-[13.5px] text-muted-2">{emptySub}</div>
+          <Icon className="text-[40px] text-[#b0b0b5]" name="ph-seedling" weight="duotone" />
+          <div className="mt-[10px] font-display text-xl text-subtle">{emptyText}</div>
+          <div className="mt-1 text-[13.5px] text-subtle-2">{emptySub}</div>
         </div>
       ) : null}
     </div>

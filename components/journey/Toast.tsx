@@ -16,10 +16,10 @@ export function Toast({ toast }: Props) {
 
   return (
     <div
-      className="fixed bottom-[30px] left-1/2 z-[95] inline-flex -translate-x-1/2 items-center gap-[9px] rounded-full bg-ink px-5 py-[13px] text-sm font-semibold text-white"
+      className="fixed bottom-[30px] left-1/2 z-[95] inline-flex -translate-x-1/2 items-center gap-[9px] rounded-full bg-content px-5 py-[13px] text-sm font-semibold text-white"
       style={{ animation: "gr-toast .3s cubic-bezier(.22,.61,.36,1) both" }}
     >
-      <Icon className="text-brand" name={toast.icon} weight="fill" /> {toast.message}
+      <Icon className="text-accent" name={toast.icon} weight="fill" /> {toast.message}
     </div>
   );
 }

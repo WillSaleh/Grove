@@ -1,41 +1,75 @@
 "use client";
 
 import { useState } from "react";
+import type { CSSProperties } from "react";
 
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
+import { AppearanceControls } from "@/components/shell/AppearanceControls";
 import type { Friend } from "@/lib/friends";
 import { useTreeStore } from "@/store/useTreeStore";
-import type { TimelineView } from "@/types/tree";
+import type { ConnectTab, TimelineView } from "@/types/tree";
+
+const CONNECT_TABS: Array<{ icon: string; id: ConnectTab; label: string }> = [
+  { icon: "ph-compass", id: "groups", label: "Groups" },
+  { icon: "ph-chat-circle-dots", id: "feed", label: "Community Feed" },
+  { icon: "ph-path", id: "timeline", label: "Timeline" },
+];
+
+const SECTION_LABEL = "px-[10px] pb-[5px] text-[11px] font-bold uppercase tracking-[.11em] text-subtle-2";
+
+const NAV_HOVER_BG = "color-mix(in srgb, var(--accent) 8%, transparent)";
+const SUBTAB_HOVER_BG = "color-mix(in srgb, var(--accent) 6%, transparent)";
+
+function navStyle(active: boolean, fontSize = 15): CSSProperties {
+  return {
+    alignItems: "center",
+    background: active ? "var(--accent)" : "transparent",
+    border: "none",
+    borderRadius: 14,
+    color: active ? "#fff" : "var(--text)",
+    cursor: "pointer",
+    display: "flex",
+    fontSize,
+    fontWeight: 600,
+    gap: 13,
+    padding: "12px 14px",
+    textAlign: "left",
+    transition: "background .16s",
+    width: "100%",
+  };
+}
 
 interface Props {
+  connectTab: ConnectTab;
   friends: Array<Friend>;
   onClose: () => void;
   onDeleteAccount: () => Promise<void>;
+  onNavCommunity: () => void;
+  onNavFriends: () => void;
+  onNavJourney: () => void;
   onOpenFriend: (id: string) => void;
-  onSelectView: (view: TimelineView) => void;
+  onSelectConnectTab: (tab: ConnectTab) => void;
   onSwitchUser: () => void;
   open: boolean;
   view: TimelineView;
-}
-
-const SECTION_LABEL = "px-[10px] pb-[5px] pt-[6px] text-[11px] font-bold uppercase tracking-[.11em] text-muted-2";
-
-function navClass(active: boolean) {
-  return `flex w-full cursor-pointer items-center gap-[13px] rounded-[14px] border-none px-[14px] py-3 text-left text-[15.5px] font-semibold transition-colors ${
-    active ? "bg-brand text-white" : "bg-transparent text-ink hover:bg-brand/[.08]"
-  }`;
+  viewingId: string | null;
 }
 
 export function Sidebar({
+  connectTab,
   friends,
   onClose,
   onDeleteAccount,
+  onNavCommunity,
+  onNavFriends,
+  onNavJourney,
   onOpenFriend,
-  onSelectView,
+  onSelectConnectTab,
   onSwitchUser,
   open,
   view,
+  viewingId,
 }: Props) {
   const person = useTreeStore((state) => state.person);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -54,28 +88,27 @@ export function Sidebar({
       setDeleting(false);
     }
   }
-
-  function selectView(next: TimelineView) {
-    onSelectView(next);
-    onClose();
-  }
-
   return (
     <>
       <div
-        className="fixed inset-0 z-[70] bg-[rgba(50,64,63,.2)] backdrop-blur-[2px]"
+        className="fixed inset-0 z-[70] backdrop-blur-[2px]"
         onClick={onClose}
-        style={{ animation: "gr-fade .2s ease both" }}
+        style={{ animation: "gr-fade .2s ease both", background: "var(--scrim)" }}
       />
       <div
-        className="fixed bottom-0 left-0 top-0 z-[71] flex w-[min(322px,86vw)] flex-col gap-[3px] overflow-y-auto border-r border-white/60 bg-white/[.72] p-[18px_16px] shadow-[0_20px_60px_rgba(0,0,0,.22)] backdrop-blur-[30px] backdrop-saturate-[1.8]"
-        style={{ animation: "gr-drawer .3s cubic-bezier(.22,.61,.36,1) both" }}
+        className="fixed bottom-0 left-0 top-0 z-[71] flex w-[min(322px,86vw)] flex-col gap-[3px] overflow-y-auto p-[18px_16px] backdrop-blur-[30px] backdrop-saturate-[1.8]"
+        style={{
+          animation: "gr-drawer .3s cubic-bezier(.22,.61,.36,1) both",
+          background: "color-mix(in srgb, var(--glass) 72%, transparent)",
+          borderRight: "1px solid color-mix(in srgb, var(--glass) 60%, transparent)",
+          boxShadow: "0 20px 60px rgba(0,0,0,.22)",
+        }}
       >
         <div className="flex items-center justify-between px-[6px] pb-[14px] pt-1">
-          <span className="font-logo text-[21px] font-extrabold tracking-[-.02em] text-ink">YV Social</span>
+          <span className="font-logo text-[21px] font-extrabold tracking-[-.02em] text-content">Thread</span>
           <button
             aria-label="Close menu"
-            className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full border border-line bg-white text-base text-muted transition-colors hover:bg-parchment-deep hover:text-ink"
+            className="flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full border border-edge bg-card text-base text-subtle transition-all duration-[180ms] hover:bg-canvas hover:text-content"
             onClick={onClose}
             type="button"
           >
@@ -83,48 +116,150 @@ export function Sidebar({
           </button>
         </div>
 
-        <div className={SECTION_LABEL}>My Space</div>
-        <button className={navClass(view === "journey")} onClick={() => selectView("journey")} type="button">
+        <div className={`${SECTION_LABEL} pt-[6px]`}>My Space</div>
+        <button
+          onClick={onNavJourney}
+          onMouseEnter={(event) => {
+            if (view !== "journey") event.currentTarget.style.background = NAV_HOVER_BG;
+          }}
+          onMouseLeave={(event) => {
+            if (view !== "journey") event.currentTarget.style.background = "transparent";
+          }}
+          style={navStyle(view === "journey", 15.5)}
+          type="button"
+        >
           <Icon name="ph-path" style={{ fontSize: 21 }} weight="duotone" /> My Journey
         </button>
-        <button className={navClass(view === "connect")} onClick={() => selectView("connect")} type="button">
+        <button
+          onClick={onNavCommunity}
+          onMouseEnter={(event) => {
+            if (view !== "community") event.currentTarget.style.background = NAV_HOVER_BG;
+          }}
+          onMouseLeave={(event) => {
+            if (view !== "community") event.currentTarget.style.background = "transparent";
+          }}
+          style={navStyle(view === "community", 15.5)}
+          type="button"
+        >
           <Icon name="ph-users-three" style={{ fontSize: 21 }} weight="duotone" /> Connect
         </button>
+        <div
+          className="my-[2px] ml-[22px] flex flex-col gap-[2px] pl-2"
+          style={{ borderLeft: "1.5px solid color-mix(in srgb, var(--accent) 14%, transparent)" }}
+        >
+          {CONNECT_TABS.map((tab) => {
+            const active = view === "community" && connectTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onSelectConnectTab(tab.id)}
+                onMouseEnter={(event) => {
+                  if (!active) event.currentTarget.style.background = SUBTAB_HOVER_BG;
+                }}
+                onMouseLeave={(event) => {
+                  if (!active) event.currentTarget.style.background = "transparent";
+                }}
+                style={{
+                  alignItems: "center",
+                  background: active ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
+                  border: "none",
+                  borderRadius: 12,
+                  color: active ? "var(--accent)" : "var(--muted)",
+                  cursor: "pointer",
+                  display: "flex",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  gap: 11,
+                  padding: "9px 12px 9px 16px",
+                  textAlign: "left",
+                  transition: "background .16s",
+                  width: "100%",
+                }}
+                type="button"
+              >
+                <Icon name={tab.icon} style={{ fontSize: 17 }} weight="duotone" /> {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-        <div className="mx-2 mb-[6px] mt-3 h-px bg-brand/[.14]" />
+        <div className="mx-2 mb-[6px] mt-3 h-px" style={{ background: "color-mix(in srgb, var(--accent) 14%, transparent)" }} />
+        <div className={`${SECTION_LABEL} pt-[2px]`}>Friends</div>
+        <button
+          onClick={onNavFriends}
+          onMouseEnter={(event) => {
+            if (view !== "friends") event.currentTarget.style.background = NAV_HOVER_BG;
+          }}
+          onMouseLeave={(event) => {
+            if (view !== "friends") event.currentTarget.style.background = "transparent";
+          }}
+          style={navStyle(view === "friends")}
+          type="button"
+        >
+          <Icon name="ph-users" style={{ fontSize: 21 }} weight="duotone" /> Friends Home
+        </button>
+        {friends.map((friend) => {
+          const selected = view === "profile" && viewingId === friend.id;
+          return (
+            <button
+              key={friend.id}
+              onClick={() => onOpenFriend(friend.id)}
+              onMouseEnter={(event) => {
+                if (!selected) event.currentTarget.style.background = NAV_HOVER_BG;
+              }}
+              onMouseLeave={(event) => {
+                if (!selected) event.currentTarget.style.background = "transparent";
+              }}
+              style={{
+                alignItems: "center",
+                background: selected ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
+                border: "none",
+                borderRadius: 14,
+                cursor: "pointer",
+                display: "flex",
+                gap: 11,
+                padding: "9px 12px",
+                transition: "background .16s",
+                width: "100%",
+              }}
+              type="button"
+            >
+              <Avatar
+                background="var(--accent)"
+                border={selected ? "2px solid var(--accent)" : "2px solid var(--ring)"}
+                fontSize={13}
+                initials={friend.initials}
+                size={34}
+              />
+              <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-semibold leading-[1.2] text-content">
+                {friend.name}
+              </span>
+              {selected ? <Icon className="flex-none text-[15px] text-accent" name="ph-check" weight="bold" /> : null}
+            </button>
+          );
+        })}
 
-        <div className={SECTION_LABEL}>Friends</div>
-        {friends.map((friend) => (
-          <button
-            className="flex w-full cursor-pointer items-center gap-[11px] rounded-[14px] border-none bg-transparent px-3 py-[9px] transition-colors hover:bg-brand/[.08]"
-            key={friend.id}
-            onClick={() => {
-              onOpenFriend(friend.id);
-              onClose();
-            }}
-            type="button"
-          >
-            <Avatar border="2px solid #fff" fontSize={13} initials={friend.initials} size={34} />
-            <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-semibold leading-tight text-ink">
-              {friend.name}
-            </span>
-          </button>
-        ))}
-
-        <div className="mx-2 mb-[6px] mt-auto h-px bg-brand/[.14]" />
+        <div className="flex-1" />
+        <div className="mx-2 mb-[6px] mt-3 h-px bg-divide" />
 
         <div className={SECTION_LABEL}>Account</div>
         {person.name ? (
           <div className="mb-2 flex items-center gap-[11px] px-3 py-2">
-            <Avatar border="2px solid #fff" fontSize={13} initials={person.initials} size={34} />
-            <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-semibold leading-tight text-ink">
+            <Avatar
+              background="var(--accent)"
+              border="2px solid var(--ring)"
+              fontSize={13}
+              initials={person.initials}
+              size={34}
+            />
+            <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-semibold leading-tight text-content">
               {person.name}
             </span>
           </div>
         ) : null}
 
         <button
-          className="flex w-full cursor-pointer items-center gap-[13px] rounded-[14px] border-none bg-transparent px-[14px] py-3 text-left text-[15.5px] font-semibold text-ink transition-colors hover:bg-brand/[.08]"
+          className="flex w-full cursor-pointer items-center gap-[13px] rounded-[14px] border-none bg-transparent px-[14px] py-3 text-left text-[15.5px] font-semibold text-content transition-colors hover:bg-accent/[.08]"
           onClick={onSwitchUser}
           type="button"
         >
@@ -165,6 +300,9 @@ export function Sidebar({
             <Icon name="ph-trash" style={{ fontSize: 21 }} weight="duotone" /> Delete account
           </button>
         )}
+
+        <div className="mx-2 mb-2 mt-3 h-px bg-divide" />
+        <AppearanceControls />
       </div>
     </>
   );

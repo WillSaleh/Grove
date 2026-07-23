@@ -57,5 +57,7 @@ export type Journey = {
   testimony: Testimony;
 };
 
-export type TimelineView = "journey" | "connect";
+export type TimelineView = "journey" | "community" | "friends" | "profile";
+export type ConnectTab = "groups" | "feed" | "timeline";
+export type FriendsTab = "all" | "requests" | "suggested" | "discover" | "privacy";
 export type ZoomLevel = "month" | "year";

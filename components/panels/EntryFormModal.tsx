@@ -75,8 +75,8 @@ interface Props {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-[13px] border-[1.5px] border-line-3 bg-white px-[14px] py-3 text-[15px] text-ink outline-none";
-const LABEL_CLASS = "mb-[6px] block text-xs font-semibold uppercase tracking-[.04em] text-muted";
+  "w-full rounded-[13px] border-[1.5px] border-edge-strong bg-card px-[14px] py-3 text-[15px] text-content outline-none";
+const LABEL_CLASS = "mb-[6px] block text-xs font-semibold uppercase tracking-[.04em] text-subtle";
 
 function titleLabel(type: EntryType): string {
   if (type === "gratitude") {
@@ -134,11 +134,11 @@ function TypeOption({ onPick, type }: { onPick: (type: EntryType) => void; type:
   const meta = ENTRY_TYPES[type];
   return (
     <button
-      className="flex cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] bg-white p-[14px] text-left transition-all"
+      className="flex cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] bg-card p-[14px] text-left transition-all"
       onClick={() => onPick(type)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ borderColor: hover ? meta.color : "#e4ddd0", transform: hover ? "translateY(-2px)" : "none" }}
+      style={{ borderColor: hover ? meta.color : "var(--border)", transform: hover ? "translateY(-2px)" : "none" }}
       type="button"
     >
       <div style={chip(meta)}>
@@ -148,7 +148,7 @@ function TypeOption({ onPick, type }: { onPick: (type: EntryType) => void; type:
         <div className="text-[15px] font-semibold" style={{ color: meta.color }}>
           {meta.label}
         </div>
-        <div className="mt-px text-xs text-muted">{meta.hint}</div>
+        <div className="mt-px text-xs text-subtle">{meta.hint}</div>
       </div>
     </button>
   );
@@ -157,7 +157,7 @@ function TypeOption({ onPick, type }: { onPick: (type: EntryType) => void; type:
 function CloseButton({ onClick }: { onClick: () => void }) {
   return (
     <button
-      className="flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-full border border-line bg-white text-lg text-muted transition-colors hover:bg-parchment"
+      className="flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-full border border-edge bg-card text-lg text-subtle transition-colors hover:bg-canvas"
       onClick={onClick}
       type="button"
     >
@@ -230,20 +230,20 @@ export function EntryFormModal({
   return (
     <div className="fixed inset-0 z-[70] flex overflow-y-auto p-5">
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-[3px]"
+        className="fixed inset-0 bg-black/[.42] backdrop-blur-[3px]"
         onClick={onCancel}
         style={{ animation: "gr-fade .2s both" }}
       />
       <div
-        className="relative m-auto w-[min(560px,100%)] rounded-[18px] border border-line bg-white"
+        className="relative m-auto w-[min(560px,100%)] rounded-[18px] border border-edge bg-card"
         style={{ animation: "gr-pop .3s cubic-bezier(.22,.61,.36,1) both" }}
       >
         {isType ? (
           <div className="p-[28px_28px_30px]">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-display text-[25px] font-semibold text-ink">Add to your journey</div>
-                <div className="mt-[3px] text-sm text-muted">What kind of moment is this?</div>
+                <div className="font-display text-[25px] font-semibold text-content">Add to your journey</div>
+                <div className="mt-[3px] text-sm text-subtle">What kind of moment is this?</div>
               </div>
               <CloseButton onClick={onCancel} />
             </div>
@@ -257,17 +257,17 @@ export function EntryFormModal({
 
         {!isType && form.type && meta ? (
           <div>
-            <div style={{ background: meta.tint, borderBottom: "1px solid #ece5d9", padding: "20px 26px" }}>
+            <div style={{ background: meta.tint, borderBottom: "1px solid var(--divider)", padding: "20px 26px" }}>
               <div className="flex items-center justify-between">
                 <div className="inline-flex items-center gap-[10px]">
                   <div style={chip(meta)}>
                     <Icon name={meta.icon} weight="duotone" />
                   </div>
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[.06em] text-muted">
+                    <div className="text-[11px] font-semibold uppercase tracking-[.06em] text-subtle">
                       {form.mode === "edit" ? "Editing" : "New entry"}
                     </div>
-                    <div className="text-[17px] font-semibold text-ink">{meta.label}</div>
+                    <div className="text-[17px] font-semibold text-content">{meta.label}</div>
                   </div>
                 </div>
                 <CloseButton onClick={onCancel} />
@@ -295,6 +295,7 @@ export function EntryFormModal({
                       <select
                         className={`${INPUT_CLASS} cursor-pointer`}
                         onChange={(event) => onChange({ bookCode: event.target.value })}
+                        style={{ paddingInline: 12 }}
                         value={form.bookCode}
                       >
                         {BIBLE_BOOKS.map((book) => (
@@ -309,6 +310,7 @@ export function EntryFormModal({
                       <select
                         className={`${INPUT_CLASS} cursor-pointer`}
                         onChange={(event) => onChange({ translation: event.target.value })}
+                        style={{ paddingInline: 12 }}
                         value={form.translation}
                       >
                         {BIBLE_VERSIONS.map((version) => (
@@ -345,7 +347,7 @@ export function EntryFormModal({
                     </label>
                     <label className="flex-1">
                       <span className={LABEL_CLASS}>
-                        End verse <span className="font-semibold normal-case tracking-normal text-faint">— optional</span>
+                        End verse <span className="font-semibold normal-case tracking-normal text-ghost">— optional</span>
                       </span>
                       <input
                         className={INPUT_CLASS}
@@ -359,14 +361,14 @@ export function EntryFormModal({
                   </div>
 
                   {displayRef ? (
-                    <div className="text-[12.5px] font-semibold text-muted-2">{displayRef}</div>
+                    <div className="text-[12.5px] font-semibold text-subtle-2">{displayRef}</div>
                   ) : null}
 
                   <div className="block">
                     <span className={LABEL_CLASS}>Verse text</span>
                     <div
-                      className={`${INPUT_CLASS} min-h-[72px] font-display italic leading-[1.5] text-ink ${
-                        previewLoading ? "text-muted-2" : ""
+                      className={`${INPUT_CLASS} min-h-[72px] font-display italic leading-[1.5] text-content ${
+                        previewLoading ? "text-subtle-2" : ""
                       }`}
                     >
                       {previewLoading
@@ -411,13 +413,19 @@ export function EntryFormModal({
               ) : null}
 
               {form.type === "prayer" ? (
-                <div className="rounded-2xl border border-brand/20 bg-brand/[.07] p-[15px_16px]">
+                <div
+                  className="rounded-2xl p-[15px_16px]"
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 7%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+                  }}
+                >
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold text-ink">Has this been answered?</div>
+                    <div className="text-sm font-semibold text-content">Has this been answered?</div>
                     <div
                       onClick={() => onChange({ answered: !form.answered })}
                       style={{
-                        background: form.answered ? "#4a5759" : "#d7cfc1",
+                        background: form.answered ? "var(--accent)" : "var(--border-strong)",
                         borderRadius: 999,
                         cursor: "pointer",
                         flex: "0 0 auto",
@@ -429,7 +437,7 @@ export function EntryFormModal({
                     >
                       <div
                         style={{
-                          background: "#fff",
+                          background: "var(--card)",
                           borderRadius: 999,
                           height: 24,
                           left: form.answered ? 25 : 3,
@@ -447,6 +455,7 @@ export function EntryFormModal({
                       onChange={(event) => onChange({ answeredNote: event.target.value })}
                       placeholder="How did God answer?"
                       rows={2}
+                      style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}
                       value={form.answeredNote}
                     />
                   ) : null}
@@ -455,7 +464,7 @@ export function EntryFormModal({
 
               <div>
                 <span className={LABEL_CLASS}>
-                  Photos &amp; video <span className="font-semibold normal-case tracking-normal text-faint">— optional</span>
+                  Photos &amp; video <span className="font-semibold normal-case tracking-normal text-ghost">— optional</span>
                 </span>
                 <div className="flex flex-wrap items-center gap-[10px]">
                   {form.media.map((item, index) => (
@@ -468,7 +477,7 @@ export function EntryFormModal({
                       </div>
                     </div>
                   ))}
-                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-line-3 text-[22px] text-muted-2 transition-colors hover:border-brand hover:bg-brand/[.05] hover:text-brand">
+                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-edge-strong text-[22px] text-subtle-2 transition-colors hover:border-accent hover:bg-accent/[.05] hover:text-accent">
                     <Icon name="ph-plus" weight="bold" />
                     <input
                       accept="image/*,video/*"
@@ -490,7 +499,7 @@ export function EntryFormModal({
 
               <div className="mt-[6px] flex gap-[10px]">
                 <button
-                  className="flex-none cursor-pointer rounded-[14px] border-[1.5px] border-line-3 bg-white px-5 py-[13px] text-[14.5px] font-semibold text-muted transition-colors hover:bg-parchment"
+                  className="flex-none cursor-pointer rounded-[14px] border-[1.5px] border-edge-strong bg-card px-5 py-[13px] text-[14.5px] font-semibold text-subtle transition-colors hover:bg-canvas"
                   onClick={onCancel}
                   type="button"
                 >
@@ -502,8 +511,8 @@ export function EntryFormModal({
                   onClick={onSave}
                   style={
                     saveEnabled
-                      ? { background: "#4a5759", color: "#fff", cursor: "pointer" }
-                      : { background: "#e7e0d3", color: "#b0b0b5", cursor: "not-allowed" }
+                      ? { background: "var(--accent)", color: "#fff", cursor: "pointer" }
+                      : { background: "var(--border)", color: "#b0b0b5", cursor: "not-allowed" }
                   }
                   type="button"
                 >

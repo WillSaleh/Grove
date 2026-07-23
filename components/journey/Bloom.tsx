@@ -2,11 +2,11 @@ import type { CSSProperties } from "react";
 
 // The gold/green "answered prayer" flourish — a ring burst, a soft glow, and ten petals opening outward.
 // The caller positions this inside a `position: relative` (or absolutely-placed) parent.
-const COLORS = ["#4a5759", "#4a5759", "#2997ff", "#2997ff", "#4a5759"];
+const COLORS = ["var(--accent)", "var(--accent)", "#2997ff", "#2997ff", "var(--accent)"];
 
 const GLOW_STYLE: CSSProperties = {
   animation: "gr-glow .95s ease-out both",
-  background: "rgba(74,87,89,.28)",
+  background: "color-mix(in srgb, var(--accent) 28%, transparent)",
   borderRadius: 999,
   height: 96,
   left: 0,
@@ -19,7 +19,7 @@ const GLOW_STYLE: CSSProperties = {
 
 const BURST_STYLE: CSSProperties = {
   animation: "gr-burst .85s ease-out both",
-  border: "2.5px solid rgba(74,87,89,.85)",
+  border: "2.5px solid color-mix(in srgb, var(--accent) 85%, transparent)",
   borderRadius: 999,
   height: 18,
   left: 0,

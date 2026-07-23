@@ -14,6 +14,8 @@ interface Props {
   onOpenTestimony: () => void;
   onSelectYear: (year: number) => void;
   personInitials: string;
+  subtitle?: string;
+  testimonyIcon?: string;
   testimonyLabel: string;
   votRef: string;
   votText: string;
@@ -22,14 +24,14 @@ interface Props {
 }
 
 const FROSTED =
-  "inline-flex flex-none items-center gap-[9px] rounded-full border border-white/60 bg-white/55 shadow-[0_4px_16px_rgba(0,0,0,.1),inset_0_1px_0_rgba(255,255,255,.6)] backdrop-blur-[24px] backdrop-saturate-[1.8] cursor-pointer";
+  "inline-flex flex-none items-center gap-[9px] rounded-full border border-[color-mix(in_srgb,var(--glass)_60%,transparent)] bg-[color-mix(in_srgb,var(--glass)_55%,transparent)] shadow-[0_4px_16px_rgba(0,0,0,.1),inset_0_1px_0_color-mix(in_srgb,var(--glass)_60%,transparent)] backdrop-blur-[24px] backdrop-saturate-[1.8] cursor-pointer";
 
 const MENU =
-  "absolute top-[calc(100%+8px)] z-[45] flex flex-col gap-[2px] rounded-2xl border border-white/65 bg-white/70 p-[7px] shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-[30px] backdrop-saturate-[1.8]";
+  "absolute top-[calc(100%+8px)] z-[45] flex flex-col gap-[2px] rounded-2xl border border-[color-mix(in_srgb,var(--glass)_65%,transparent)] bg-[color-mix(in_srgb,var(--glass)_70%,transparent)] p-[7px] shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-[30px] backdrop-saturate-[1.8]";
 
 function rowClass(selected: boolean) {
   return `flex cursor-pointer items-center gap-[9px] whitespace-nowrap rounded-[10px] py-[9px] pl-[11px] pr-[15px] text-[15px] font-semibold ${
-    selected ? "bg-brand/10 text-brand" : "text-ink hover:bg-black/5"
+    selected ? "bg-accent/10 text-accent" : "text-content hover:bg-black/5"
   }`;
 }
 
@@ -41,6 +43,8 @@ export function TimelineHeader({
   onOpenTestimony,
   onSelectYear,
   personInitials,
+  subtitle,
+  testimonyIcon = "ph-hand-heart",
   testimonyLabel,
   votRef,
   votText,
@@ -64,28 +68,29 @@ export function TimelineHeader({
     <header className="relative bg-transparent px-[clamp(20px,4vw,52px)] pb-6 pt-[26px]">
       <div className="mb-[18px] flex items-start justify-between gap-7">
         <div className="flex min-w-0 items-start gap-4">
-          <Avatar border="3px solid #fff" fontSize={19} initials={personInitials} size={54} />
+          <Avatar border="3px solid var(--ring)" fontSize={19} initials={personInitials} size={54} />
           <div className="min-w-0">
-            <div className="font-display text-[clamp(24px,3vw,32px)] font-semibold leading-[1.05] tracking-[-.022em] text-ink">
+            <div className="font-display text-[clamp(24px,3vw,32px)] font-semibold leading-[1.05] tracking-[-.022em] text-accent">
               {welcomeText}
             </div>
+            {subtitle ? <div className="mt-1 text-[14.5px] text-subtle">{subtitle}</div> : null}
             <button
-              className="mt-3 inline-flex cursor-pointer items-center gap-[7px] rounded-full border border-line-3 bg-white/50 px-[13px] py-[6px] text-[12.5px] font-semibold text-brand transition-colors hover:border-brand hover:bg-brand/[.08]"
+              className="mt-3 inline-flex cursor-pointer items-center gap-[7px] rounded-full border border-edge-strong bg-[color-mix(in_srgb,var(--glass)_50%,transparent)] px-[13px] py-[6px] text-[12.5px] font-semibold text-accent transition-colors hover:border-accent hover:bg-accent/[.08]"
               onClick={onOpenTestimony}
               type="button"
             >
-              <Icon name="ph-hand-heart" weight="bold" /> {testimonyLabel}
+              <Icon name={testimonyIcon} weight="bold" /> {testimonyLabel}
             </button>
           </div>
         </div>
 
         {votText ? (
           <div className="hidden max-w-[330px] flex-none text-right opacity-[.62] md:block">
-            <div className="inline-flex items-center justify-end gap-[6px] text-[10px] font-bold uppercase tracking-[.14em] text-muted-2">
+            <div className="inline-flex items-center justify-end gap-[6px] text-[10px] font-bold uppercase tracking-[.14em] text-subtle-2">
               <Icon className="text-[13px]" name="ph-book-bookmark" weight="duotone" /> Verse of the Day
             </div>
-            <div className="mt-[5px] font-display text-[14.5px] italic leading-[1.45] text-brand">&ldquo;{votText}&rdquo;</div>
-            <div className="mt-1 text-[11px] font-semibold tracking-[.02em] text-muted-2">{votRef}</div>
+            <div className="mt-[5px] font-display text-[14.5px] italic leading-[1.45] text-accent">&ldquo;{votText}&rdquo;</div>
+            <div className="mt-1 text-[11px] font-semibold tracking-[.02em] text-subtle-2">{votRef}</div>
           </div>
         ) : null}
       </div>
@@ -94,7 +99,7 @@ export function TimelineHeader({
         <div className="relative inline-flex flex-none items-center">
           <button
             aria-label="Select year"
-            className={`${FROSTED} px-[18px] py-[10px] text-[17px] font-semibold tracking-[-.01em] text-brand`}
+            className={`${FROSTED} px-[18px] py-[10px] text-[17px] font-semibold tracking-[-.01em] text-accent`}
             onClick={() => setYearOpen((open) => !open)}
             type="button"
           >
@@ -121,7 +126,7 @@ export function TimelineHeader({
           <div className="relative inline-flex flex-none items-center">
             <button
               aria-label="Select month"
-              className={`${FROSTED} px-[18px] py-[10px] text-[17px] font-semibold tracking-[-.01em] text-brand`}
+              className={`${FROSTED} px-[18px] py-[10px] text-[17px] font-semibold tracking-[-.01em] text-accent`}
               onClick={() => setMonthOpen((open) => !open)}
               type="button"
             >

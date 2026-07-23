@@ -7,7 +7,7 @@ import type { MediaItem } from "@/types/tree";
 export function mediaThumbStyle(item: MediaItem | undefined, size?: number): CSSProperties {
   const base: CSSProperties = {
     aspectRatio: size ? "1" : "4/3",
-    border: "1px solid #e4ddd0",
+    border: "1px solid var(--border)",
     borderRadius: size ? 8 : 12,
     flex: "0 0 auto",
     height: size ?? "auto",
@@ -18,5 +18,5 @@ export function mediaThumbStyle(item: MediaItem | undefined, size?: number): CSS
   if (item?.url) {
     return { ...base, backgroundImage: `url(${item.url})`, backgroundPosition: "center", backgroundSize: "cover" };
   }
-  return { ...base, background: "#f2f2f4" };
+  return { ...base, background: "var(--input)" };
 }

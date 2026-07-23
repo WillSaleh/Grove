@@ -15,7 +15,7 @@ interface Props {
   onSetVideo: (files: Array<File>) => void;
 }
 
-const LABEL_CLASS = "mb-[10px] text-xs font-semibold uppercase tracking-[.06em] text-muted-2";
+const LABEL_CLASS = "mb-[10px] text-xs font-semibold uppercase tracking-[.06em] text-subtle-2";
 
 export function TestimonyModal({
   draft,
@@ -39,19 +39,19 @@ export function TestimonyModal({
         style={{ animation: "gr-fade .2s both" }}
       />
       <div
-        className="relative m-auto w-[min(600px,100%)] rounded-[18px] border border-line bg-white"
+        className="relative m-auto w-[min(600px,100%)] rounded-[18px] border border-edge bg-card"
         style={{ animation: "gr-pop .3s cubic-bezier(.22,.61,.36,1) both" }}
       >
         <div className="p-[24px_26px_0]">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="font-display text-[25px] font-semibold text-ink">Your testimony</div>
-              <div className="mt-[3px] max-w-[430px] text-sm text-muted">
+              <div className="font-display text-[25px] font-semibold text-content">Your testimony</div>
+              <div className="mt-[3px] max-w-[430px] text-sm text-subtle">
                 The story of what God has done — written, spoken, or shown. Friends can read it from your journey.
               </div>
             </div>
             <button
-              className="flex h-[38px] w-[38px] flex-none cursor-pointer items-center justify-center rounded-full border border-line bg-white text-lg text-muted transition-colors hover:bg-parchment"
+              className="flex h-[38px] w-[38px] flex-none cursor-pointer items-center justify-center rounded-full border border-edge bg-card text-lg text-subtle transition-colors hover:bg-canvas"
               onClick={onCancel}
               type="button"
             >
@@ -64,7 +64,7 @@ export function TestimonyModal({
           <div>
             <div className={LABEL_CLASS}>Your story</div>
             <textarea
-              className="w-full rounded-2xl border-[1.5px] border-line-3 bg-white p-4 font-display text-base leading-[1.6] text-ink outline-none"
+              className="w-full rounded-2xl border-[1.5px] border-edge-strong bg-card p-4 font-display text-base leading-[1.6] text-content outline-none focus:border-accent"
               onChange={(event) => onChangeText(event.target.value)}
               placeholder="Before I met Jesus…  ·  The turning point was…  ·  Today, He is…"
               rows={7}
@@ -85,7 +85,7 @@ export function TestimonyModal({
                   </div>
                 </div>
               ))}
-              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-line-3 text-2xl text-muted-2 transition-colors hover:border-brand hover:bg-brand/[.05] hover:text-brand">
+              <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-[14px] border-[1.5px] border-dashed border-edge-strong text-2xl text-subtle-2 transition-colors hover:border-accent hover:bg-accent/[.05] hover:text-accent">
                 <Icon name="ph-plus" weight="bold" />
                 <input
                   accept="image/*"
@@ -108,7 +108,7 @@ export function TestimonyModal({
           <div>
             <div className={LABEL_CLASS}>Video</div>
             {video ? (
-              <div className="relative overflow-hidden rounded-2xl border border-line-3 bg-black">
+              <div className="relative overflow-hidden rounded-2xl border border-edge-strong bg-black">
                 <video className="block max-h-[320px] w-full" controls src={video.url} />
                 <button
                   className="absolute right-[10px] top-[10px] flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full border-none bg-black/[.65] text-white"
@@ -119,10 +119,10 @@ export function TestimonyModal({
                 </button>
               </div>
             ) : (
-              <label className="flex h-[180px] cursor-pointer flex-col items-center justify-center gap-[10px] rounded-2xl border-[1.5px] border-dashed border-line-3 text-center text-muted-2 transition-colors hover:border-brand hover:bg-brand/[.04] hover:text-brand">
+              <label className="flex h-[180px] cursor-pointer flex-col items-center justify-center gap-[10px] rounded-2xl border-[1.5px] border-dashed border-edge-strong text-center text-subtle-2 transition-colors hover:border-accent hover:bg-accent/[.04] hover:text-accent">
                 <Icon className="text-[34px]" name="ph-video-camera" weight="duotone" />
                 <div className="text-[15px] font-semibold">Upload a video testimony</div>
-                <div className="text-[12.5px] text-faint">It previews right here once attached</div>
+                <div className="text-[12.5px] text-[#b0b0b5]">It previews right here once attached</div>
                 <input
                   accept="video/*"
                   className="hidden"
@@ -142,7 +142,7 @@ export function TestimonyModal({
 
           <div className="flex gap-[10px]">
             <button
-              className="flex-none cursor-pointer rounded-[14px] border-[1.5px] border-line-3 bg-white px-5 py-[13px] text-[14.5px] font-semibold text-muted transition-colors hover:bg-parchment"
+              className="flex-none cursor-pointer rounded-[14px] border-[1.5px] border-edge-strong bg-card px-5 py-[13px] text-[14.5px] font-semibold text-subtle transition-colors hover:bg-canvas"
               onClick={onCancel}
               type="button"
             >
@@ -154,8 +154,8 @@ export function TestimonyModal({
               onClick={onSave}
               style={
                 saveEnabled
-                  ? { background: "#4a5759", color: "#fff", cursor: "pointer" }
-                  : { background: "#e7e0d3", color: "#b0b0b5", cursor: "not-allowed" }
+                  ? { background: "var(--accent)", color: "#fff", cursor: "pointer" }
+                  : { background: "var(--border)", color: "#b0b0b5", cursor: "not-allowed" }
               }
               type="button"
             >

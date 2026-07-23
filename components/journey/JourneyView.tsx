@@ -35,7 +35,7 @@ interface Props {
 }
 
 const AXIS_STYLE: CSSProperties = {
-  background: "#5c7a5e",
+  background: "var(--timeline)",
   borderRadius: 999,
   bottom: 67,
   height: 6,
@@ -220,23 +220,25 @@ export function JourneyView({ onShowToast }: Props) {
   }
 
   async function toggleAnswered() {
-    if (!selectedEntry || !selectedEntry.prayerId || !userId) {
+    if (!selectedEntry) {
       return;
     }
     const next = !selectedEntry.answered;
-    try {
-      await setPrayerAnswered(userId, selectedEntry.prayerId, next, selectedEntry.answeredNote ?? null);
-    } catch (error) {
-      console.error("Failed to update prayer:", error);
-      onShowToast("Couldn't update — try again", "ph-warning-circle");
-      return;
-    }
+    // Optimistic local update + celebration bloom — runs with or without a live backend.
     setAnswered(selectedEntry.id, next);
     if (next) {
       setBloomId(selectedEntry.id);
       window.clearTimeout(bloomTimer.current);
       bloomTimer.current = window.setTimeout(() => setBloomId(null), 1150);
       onShowToast("Prayer answered — to God be the glory", "ph-seal-check");
+    }
+    // Best-effort sync when signed in against a real backend prayer.
+    if (userId && selectedEntry.prayerId) {
+      try {
+        await setPrayerAnswered(userId, selectedEntry.prayerId, next, selectedEntry.answeredNote ?? null);
+      } catch (error) {
+        console.error("Failed to sync prayer status:", error);
+      }
     }
   }
 
@@ -277,20 +279,21 @@ export function JourneyView({ onShowToast }: Props) {
   }
 
   async function deleteSelected() {
-    if (!selectedEntry || !userId) {
+    if (!selectedEntry) {
       return;
     }
-    try {
-      await deleteBackendEntry(userId, selectedEntry.id);
-    } catch (error) {
-      console.error("Failed to delete entry:", error);
-      onShowToast("Couldn't delete — try again", "ph-warning-circle");
-      return;
-    }
-    deleteEntry(selectedEntry.id);
+    const { id } = selectedEntry;
+    deleteEntry(id);
     setSelectedId(null);
     setCardClosing(false);
     onShowToast("Entry removed", "ph-leaf");
+    if (userId) {
+      try {
+        await deleteBackendEntry(userId, id);
+      } catch (error) {
+        console.error("Failed to delete entry on the backend:", error);
+      }
+    }
   }
 
   function pickType(type: EntryType) {
@@ -307,12 +310,14 @@ export function JourneyView({ onShowToast }: Props) {
       form.type === "verse"
         ? buildDisplayVerseRef(form.bookCode, form.chapter.trim(), form.verse.trim(), form.verseEnd.trim() || undefined)
         : "";
+    const isEdit = form.mode === "edit" && Boolean(form.id);
+    const localId = globalThis.crypto?.randomUUID?.() ?? `local-${Date.now()}`;
     const entry: Entry = {
       answeredNote: form.answeredNote.trim(),
       answered: form.answered,
       body: form.body.trim(),
       day,
-      id: form.mode === "edit" && form.id ? form.id : "",
+      id: isEdit ? (form.id as string) : localId,
       media: form.media,
       month: Number(form.month),
       note: form.note.trim(),
@@ -323,9 +328,23 @@ export function JourneyView({ onShowToast }: Props) {
       year,
     };
 
-    if (!userId) return;
+    // Optimistic local update so the journey works with or without a live backend.
+    if (isEdit) {
+      updateEntry(entry);
+    } else {
+      addEntry(entry);
+    }
+    setActiveYear(entry.year);
+    setActiveMonth(entry.month);
+    setFormOpen(false);
+    onShowToast(isEdit ? "Entry updated" : "Added to your journey", "ph-seal-check");
+
+    // Best-effort backend sync (+ media upload) when signed in; reconcile with the saved record.
+    if (!userId) {
+      return;
+    }
     try {
-      if (form.mode === "edit") {
+      if (isEdit) {
         const saved = await updateBackendEntry(userId, entry.id, entry);
         const previousMedia = entries.find((e) => e.id === entry.id)?.media ?? [];
         saved.media = await syncEntryMedia(userId, saved.id, previousMedia, entry.media ?? []);
@@ -333,18 +352,12 @@ export function JourneyView({ onShowToast }: Props) {
       } else {
         const saved = await createEntry(userId, entry);
         saved.media = await syncEntryMedia(userId, saved.id, [], entry.media ?? []);
+        deleteEntry(entry.id);
         addEntry(saved);
       }
     } catch (error) {
-      console.error("Failed to save entry:", error);
-      onShowToast("Couldn't save — try again", "ph-warning-circle");
-      return;
+      console.error("Failed to save entry on the backend:", error);
     }
-
-    setActiveYear(entry.year);
-    setActiveMonth(entry.month);
-    setFormOpen(false);
-    onShowToast(form.mode === "edit" ? "Entry updated" : "Added to your journey", "ph-seal-check");
   }
 
   function openTestimony() {
@@ -353,19 +366,21 @@ export function JourneyView({ onShowToast }: Props) {
   }
 
   async function saveTestimony() {
-    if (!userId) return;
     const text = testimonyDraft.text.trim();
+    // Optimistic local save so testimony works with or without a live backend.
+    persistTestimony({ text, media: testimonyDraft.media });
+    setTestimonyOpen(false);
+    onShowToast("Testimony saved", "ph-hand-heart");
+    if (!userId) {
+      return;
+    }
     try {
       await updateTestimonyText(userId, text);
       const media = await syncTestimonyMedia(userId, testimony.media, testimonyDraft.media);
       persistTestimony({ text, media });
     } catch (error) {
-      console.error("Failed to save testimony:", error);
-      onShowToast("Couldn't save — try again", "ph-warning-circle");
-      return;
+      console.error("Failed to save testimony on the backend:", error);
     }
-    setTestimonyOpen(false);
-    onShowToast("Testimony saved", "ph-hand-heart");
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -458,7 +473,7 @@ export function JourneyView({ onShowToast }: Props) {
         ...monthEntries.map((entry, index) => ({
           bandStyle: { display: "none" as const },
           guideStyle: {
-            background: index === 0 ? "transparent" : "rgba(74,87,89,.09)",
+            background: index === 0 ? "transparent" : "color-mix(in srgb, var(--accent) 9%, transparent)",
             bottom: 24,
             left: PAD + index * SLOT,
             position: "absolute" as const,
@@ -482,7 +497,7 @@ export function JourneyView({ onShowToast }: Props) {
         {
           bandStyle: { display: "none" as const },
           guideStyle: {
-            background: "rgba(74,87,89,.09)",
+            background: "color-mix(in srgb, var(--accent) 9%, transparent)",
             bottom: 24,
             left: PAD + monthEntries.length * SLOT,
             position: "absolute" as const,
@@ -506,16 +521,16 @@ export function JourneyView({ onShowToast }: Props) {
           zIndex: 0,
         },
         guideStyle: {
-          background: index === 0 ? "transparent" : "rgba(74,87,89,.07)",
+          background: index === 0 ? "transparent" : "color-mix(in srgb, var(--accent) 7%, transparent)",
           bottom: 24,
           left: `${(index / 12) * 100}%`,
           position: "absolute" as const,
           top: 24,
           width: 1,
         },
+        labelActive: index === activeMonth,
         labelStyle: {
           bottom: 33,
-          color: index === activeMonth ? "#4a5759" : "#b0b0b5",
           cursor: "pointer",
           fontSize: 11.5,
           fontWeight: 600,
@@ -539,7 +554,7 @@ export function JourneyView({ onShowToast }: Props) {
     : "Tap “Add entry” to mark what God did this year.";
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-parchment">
+    <div className="relative flex min-h-0 flex-1 flex-col bg-canvas">
       <TimelineHeader
         activeMonth={activeMonth}
         activeYear={activeYear}
@@ -578,7 +593,7 @@ export function JourneyView({ onShowToast }: Props) {
       <ZoomControl onSetZoom={changeZoom} zoom={zoom} />
 
       <button
-        className="fixed z-40 inline-flex cursor-pointer items-center gap-[9px] rounded-full border-none bg-fern px-[22px] py-[15px] text-[15px] font-semibold text-white shadow-[0_8px_22px_-6px_rgba(92,122,94,.5)] transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-[3px] hover:scale-[1.03] hover:bg-fern-dark hover:shadow-[0_14px_30px_-8px_rgba(92,122,94,.6)]"
+        className="fixed z-40 inline-flex cursor-pointer items-center gap-[9px] rounded-full border-none bg-timeline px-[22px] py-[15px] text-[15px] font-semibold text-white shadow-[0_8px_22px_-6px_color-mix(in_srgb,var(--timeline)_50%,transparent)] transition-[transform,box-shadow,background-color] duration-300 ease-[cubic-bezier(.22,.61,.36,1)] hover:-translate-y-[3px] hover:scale-[1.03] hover:bg-[var(--timeline-strong)] hover:shadow-[0_14px_30px_-8px_color-mix(in_srgb,var(--timeline)_60%,transparent)]"
         onClick={openAdd}
         style={{ bottom: "clamp(18px,3vw,32px)", right: "clamp(18px,3vw,36px)" }}
         type="button"

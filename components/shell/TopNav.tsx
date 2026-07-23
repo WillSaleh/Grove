@@ -13,8 +13,19 @@ export function TopNav({ onGoHome, onOpenSidebar }: Props) {
       <div className="flex items-center gap-4 px-[clamp(20px,4vw,52px)] py-3">
         <button
           aria-label="Open menu"
-          className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-[14px] border border-white/60 bg-white/55 text-xl text-ink shadow-[0_4px_16px_rgba(0,0,0,.08),inset_0_1px_0_rgba(255,255,255,.6)] backdrop-blur-[24px] backdrop-saturate-[1.8] transition-colors hover:bg-white/85"
+          className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-[14px] text-xl text-content backdrop-blur-[24px] backdrop-saturate-[1.8] transition-[background] duration-[180ms]"
           onClick={onOpenSidebar}
+          onMouseEnter={(event) => {
+            event.currentTarget.style.background = "color-mix(in srgb, var(--glass) 85%, transparent)";
+          }}
+          onMouseLeave={(event) => {
+            event.currentTarget.style.background = "color-mix(in srgb, var(--glass) 55%, transparent)";
+          }}
+          style={{
+            background: "color-mix(in srgb, var(--glass) 55%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--glass) 60%, transparent)",
+            boxShadow: "0 4px 16px rgba(0,0,0,.08), inset 0 1px 0 color-mix(in srgb, var(--glass) 60%, transparent)",
+          }}
           type="button"
         >
           <Icon name="ph-list" weight="bold" />
@@ -24,7 +35,7 @@ export function TopNav({ onGoHome, onOpenSidebar }: Props) {
           onClick={onGoHome}
           type="button"
         >
-          <span className="font-logo text-2xl font-extrabold tracking-[-.02em] text-ink">YV Social</span>
+          <span className="font-logo text-2xl font-extrabold tracking-[-.02em] text-content">Thread</span>
         </button>
       </div>
     </nav>

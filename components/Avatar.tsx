@@ -1,18 +1,19 @@
 interface Props {
+  background?: string;
   border?: string;
   fontSize?: number;
   initials: string;
   size?: number;
 }
 
-// The signed-in person / friend avatar: a soft green disc with initials. Colors are fixed brand green
-// (the design's `av` gradient stops are decorative and collapse to a single green in practice).
-export function Avatar({ border = "3px solid #fff", fontSize = 15, initials, size = 40 }: Props) {
+// A person's avatar: a solid disc with initials. Defaults to the theme accent + ring so avatars follow
+// the active accent color and adapt to dark mode (matching the design's avStyle); callers may override.
+export function Avatar({ background = "var(--accent)", border = "3px solid var(--ring)", fontSize = 15, initials, size = 40 }: Props) {
   return (
     <div
       style={{
         alignItems: "center",
-        background: "#4a5759",
+        background,
         border,
         borderRadius: 999,
         color: "#fff",
