@@ -22,6 +22,7 @@ import {
   type VerseOfTheDay,
 } from "@/lib/api";
 import { buildTimelineNodes, entriesForYear, MONTHS, MONTHS_LONG, PAD, SLOT, TODAY } from "@/lib/timeline";
+import { verseOfTheDay as localVerseOfTheDay } from "@/lib/verses";
 import { useTreeStore } from "@/store/useTreeStore";
 import type { Entry, EntryType, MediaItem, Testimony, ZoomLevel } from "@/types/tree";
 
@@ -93,7 +94,7 @@ export function JourneyView({ onShowToast }: Props) {
   const [form, setForm] = useState<EntryForm>(() => blankForm(latestYear(entries), latestMonthIn(entries, latestYear(entries)), 15));
   const [testimonyOpen, setTestimonyOpen] = useState(false);
   const [testimonyDraft, setTestimonyDraft] = useState<Testimony>({ photos: [], text: "", video: null });
-  const [verseOfTheDay, setVerseOfTheDay] = useState<VerseOfTheDay | null>(null);
+  const [verseOfTheDay, setVerseOfTheDay] = useState<VerseOfTheDay | null>(() => localVerseOfTheDay());
 
   const scrollElRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -116,9 +117,10 @@ export function JourneyView({ onShowToast }: Props) {
   const hasTestimony = Boolean(testimony.text.trim() || testimony.video || testimony.photos.length);
 
   useEffect(() => {
+    // Backend Verse of the Day when available; otherwise keep the local list value seeded above.
     getVerseOfTheDay()
       .then(setVerseOfTheDay)
-      .catch((error) => console.error("Failed to load verse of the day:", error));
+      .catch(() => setVerseOfTheDay(localVerseOfTheDay()));
   }, []);
 
   const handleWheel = useCallback((event: WheelEvent) => {
