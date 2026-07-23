@@ -26,7 +26,7 @@ VERSION_CODES: dict[str, int] = {
 }
 
 _VERSE_REF_PATTERN = re.compile(
-    r"^([A-Z]{3})\s+(\d+):(\d+)(?:-(\d+))?(?:\s+([A-Z]{3,4}))?$",
+    r"^([0-9]?[A-Z]{2,3})\s+(\d+):(\d+)(?:-(\d+))?(?:\s+([A-Z]{3,4}))?$",
     re.IGNORECASE,
 )
 

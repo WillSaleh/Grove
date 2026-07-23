@@ -221,3 +221,20 @@ async def set_prayer_answered(user_id: str, prayer_id: str, body: PrayerAnswered
 @router.get("/verse_of_the_day")
 async def get_verse_of_the_day():
     return await get_votd()
+
+
+@router.get("/verse")
+async def get_verse(verse_ref: str):
+    from scripts.generate_verse import _disect_verse_ref, retrieve_verse
+
+    try:
+        verse_text = await retrieve_verse(verse_ref)
+        parts = await _disect_verse_ref(verse_ref)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {
+        "verse_ref": verse_ref.strip(),
+        "verse_text": verse_text,
+        "translation": parts["version"],
+    }

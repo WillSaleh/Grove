@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { Icon } from "@/components/Icon";
 import { ENTRY_TYPES, ENTRY_TYPE_ORDER } from "@/lib/entryTypes";
+import { BIBLE_BOOKS, BIBLE_VERSIONS, buildBackendVerseRef, buildDisplayVerseRef } from "@/lib/bibleBooks";
+import { fetchVerseText } from "@/lib/api";
 import { mediaThumbStyle } from "@/lib/media";
 import { MONTHS_LONG } from "@/lib/timeline";
 import type { EntryType, MediaItem } from "@/types/tree";
@@ -15,18 +17,20 @@ export type EntryForm = {
   answered: boolean;
   answeredNote: string;
   body: string;
+  bookCode: string;
+  chapter: string;
   day: string;
   id: string | null;
   media: Array<MediaItem>;
   mode: "add" | "edit";
   month: number;
   note: string;
-  ref: string;
   step: "type" | "fields";
   title: string;
   translation: string;
   type: EntryType | null;
-  verseText: string;
+  verse: string;
+  verseEnd: string;
   year: number;
 };
 
@@ -35,24 +39,29 @@ export function blankForm(year: number, month: number, day: number): EntryForm {
     answered: false,
     answeredNote: "",
     body: "",
+    bookCode: "PSA",
+    chapter: "",
     day: String(day),
     id: null,
     media: [],
     mode: "add",
     month,
     note: "",
-    ref: "",
     step: "type",
     title: "",
     translation: "NIV",
     type: null,
-    verseText: "",
+    verse: "",
+    verseEnd: "",
     year,
   };
 }
 
 export function canSaveForm(form: EntryForm): boolean {
-  return form.type === "verse" ? Boolean(form.ref.trim()) : Boolean(form.title.trim());
+  if (form.type === "verse") {
+    return Boolean(form.bookCode && form.chapter.trim() && form.verse.trim() && form.translation.trim());
+  }
+  return Boolean(form.title.trim());
 }
 
 interface Props {
@@ -174,6 +183,54 @@ export function EntryFormModal({
   const meta = form.type ? ENTRY_TYPES[form.type] : null;
   const isType = form.step === "type";
   const saveEnabled = canSaveForm(form);
+  const [previewText, setPreviewText] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const displayRef =
+    form.type === "verse" && form.bookCode && form.chapter.trim() && form.verse.trim()
+      ? buildDisplayVerseRef(form.bookCode, form.chapter.trim(), form.verse.trim(), form.verseEnd.trim() || undefined)
+      : "";
+
+  useEffect(() => {
+    if (form.type !== "verse") {
+      return;
+    }
+
+    const chapter = form.chapter.trim();
+    const verse = form.verse.trim();
+    if (!form.bookCode || !chapter || !verse) {
+      setPreviewText("");
+      setPreviewError(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    const backendRef = buildBackendVerseRef(
+      form.bookCode,
+      chapter,
+      verse,
+      form.verseEnd.trim() || undefined,
+      form.translation,
+    );
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    const timer = window.setTimeout(() => {
+      fetchVerseText(backendRef)
+        .then((text) => {
+          setPreviewText(text);
+          setPreviewError(null);
+        })
+        .catch(() => {
+          setPreviewText("");
+          setPreviewError("Couldn't load this verse. Check the reference and try again.");
+        })
+        .finally(() => setPreviewLoading(false));
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [form.bookCode, form.chapter, form.translation, form.type, form.verse, form.verseEnd]);
 
   return (
     <div className="fixed inset-0 z-[70] flex overflow-y-auto p-5">
@@ -238,35 +295,92 @@ export function EntryFormModal({
               {form.type === "verse" ? (
                 <>
                   <div className="flex gap-3">
-                    <label className="flex-[2]">
-                      <span className={LABEL_CLASS}>Reference</span>
-                      <input
-                        className={INPUT_CLASS}
-                        onChange={(event) => onChange({ ref: event.target.value })}
-                        placeholder="e.g. Psalm 23:1"
-                        value={form.ref}
-                      />
+                    <label className="flex-[1.6]">
+                      <span className={LABEL_CLASS}>Book</span>
+                      <select
+                        className={`${INPUT_CLASS} cursor-pointer`}
+                        onChange={(event) => onChange({ bookCode: event.target.value })}
+                        value={form.bookCode}
+                      >
+                        {BIBLE_BOOKS.map((book) => (
+                          <option key={book.code} value={book.code}>
+                            {book.name}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <label className="flex-1">
                       <span className={LABEL_CLASS}>Version</span>
+                      <select
+                        className={`${INPUT_CLASS} cursor-pointer`}
+                        onChange={(event) => onChange({ translation: event.target.value })}
+                        value={form.translation}
+                      >
+                        {BIBLE_VERSIONS.map((version) => (
+                          <option key={version} value={version}>
+                            {version}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <label className="flex-1">
+                      <span className={LABEL_CLASS}>Chapter</span>
                       <input
                         className={INPUT_CLASS}
-                        onChange={(event) => onChange({ translation: event.target.value })}
-                        placeholder="NIV"
-                        value={form.translation}
+                        min={1}
+                        onChange={(event) => onChange({ chapter: event.target.value })}
+                        placeholder="1"
+                        type="number"
+                        value={form.chapter}
+                      />
+                    </label>
+                    <label className="flex-1">
+                      <span className={LABEL_CLASS}>Verse</span>
+                      <input
+                        className={INPUT_CLASS}
+                        min={1}
+                        onChange={(event) => onChange({ verse: event.target.value })}
+                        placeholder="1"
+                        type="number"
+                        value={form.verse}
+                      />
+                    </label>
+                    <label className="flex-1">
+                      <span className={LABEL_CLASS}>
+                        End verse <span className="font-semibold normal-case tracking-normal text-faint">— optional</span>
+                      </span>
+                      <input
+                        className={INPUT_CLASS}
+                        min={1}
+                        onChange={(event) => onChange({ verseEnd: event.target.value })}
+                        placeholder="—"
+                        type="number"
+                        value={form.verseEnd}
                       />
                     </label>
                   </div>
-                  <label className="block">
+
+                  {displayRef ? (
+                    <div className="text-[12.5px] font-semibold text-muted-2">{displayRef}</div>
+                  ) : null}
+
+                  <div className="block">
                     <span className={LABEL_CLASS}>Verse text</span>
-                    <textarea
-                      className={`${INPUT_CLASS} font-display italic leading-[1.5]`}
-                      onChange={(event) => onChange({ verseText: event.target.value })}
-                      placeholder="Type or paste the verse…"
-                      rows={2}
-                      value={form.verseText}
-                    />
-                  </label>
+                    <div
+                      className={`${INPUT_CLASS} min-h-[72px] font-display italic leading-[1.5] text-ink ${
+                        previewLoading ? "text-muted-2" : ""
+                      }`}
+                    >
+                      {previewLoading
+                        ? "Loading verse…"
+                        : previewError
+                          ? previewError
+                          : previewText || "Choose a book, chapter, and verse to preview the passage."}
+                    </div>
+                  </div>
                 </>
               ) : null}
 
