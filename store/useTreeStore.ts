@@ -13,14 +13,17 @@ type TreeStore = {
   person: Person;
   saveTestimony: (testimony: Testimony) => void;
   setAnswered: (id: string, answered: boolean) => void;
+  setUserId: (userId: string) => void;
   testimony: Testimony;
   updateEntry: (entry: Entry) => void;
+  userId: string | null;
 };
 
 export const useTreeStore = create<TreeStore>((set) => ({
   entries: SEED_JOURNEY.entries,
   person: SEED_JOURNEY.person,
   testimony: SEED_JOURNEY.testimony,
+  userId: null,
 
   addEntry: (entry) => set((state) => ({ entries: [...state.entries, entry] })),
 
@@ -32,6 +35,8 @@ export const useTreeStore = create<TreeStore>((set) => ({
     set((state) => ({
       entries: state.entries.map((entry) => (entry.id === id ? { ...entry, answered } : entry)),
     })),
+
+  setUserId: (userId) => set({ userId }),
 
   updateEntry: (updated) =>
     set((state) => ({

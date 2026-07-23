@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConnectPlaceholder } from "@/components/connect/ConnectPlaceholder";
 import { JourneyView } from "@/components/journey/JourneyView";
@@ -8,7 +8,9 @@ import { Toast } from "@/components/journey/Toast";
 import type { ToastState } from "@/components/journey/Toast";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { TopNav } from "@/components/shell/TopNav";
+import { getOrCreateUserId } from "@/lib/api";
 import { FRIENDS } from "@/lib/friends";
+import { useTreeStore } from "@/store/useTreeStore";
 import type { TimelineView } from "@/types/tree";
 
 export function TimelineApp() {
@@ -17,6 +19,16 @@ export function TimelineApp() {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const toastTimer = useRef<number | undefined>(undefined);
+  const setUserId = useTreeStore((state) => state.setUserId);
+  const requestedUserId = useRef(false);
+
+  useEffect(() => {
+    if (requestedUserId.current) return;
+    requestedUserId.current = true;
+    getOrCreateUserId()
+      .then(setUserId)
+      .catch((error) => console.error("Failed to establish demo user:", error));
+  }, [setUserId]);
 
   const showToast = useCallback((message: string, icon: string) => {
     setToast({ icon, message });
