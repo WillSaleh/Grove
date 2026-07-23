@@ -18,3 +18,13 @@ async def save_upload(file: UploadFile) -> str:
         f.write(contents)
 
     return f"/uploads/{filename}"
+
+
+# Only removes files this server itself served under /uploads/ — media.url can also be an external
+# URL (per API docs), and we must never touch those.
+def delete_upload(url: str) -> None:
+    if not url.startswith("/uploads/"):
+        return
+    path = os.path.join(UPLOAD_DIR, os.path.basename(url))
+    if os.path.exists(path):
+        os.remove(path)

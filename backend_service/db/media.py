@@ -24,6 +24,20 @@ async def postgres_media_get_for_entry(cur, entry_id: str):
     return await cur.fetchall()
 
 
+async def postgres_media_get_for_user(cur, user_id: str):
+    await cur.execute(
+        """
+        SELECT m.id, m.entry_id, m.media_type, m.url, m.label
+        FROM entries_media m
+        JOIN entries e ON m.entry_id = e.id
+        JOIN trees t ON e.tree_id = t.id
+        WHERE t.user_id = %s
+        """,
+        (user_id,),
+    )
+    return await cur.fetchall()
+
+
 async def postgres_media_attach_to_entry(user_id: str, entry_id: str, item: MediaCreate):
     async with db_cursor(commit=True) as cur:
         await cur.execute(
@@ -44,5 +58,24 @@ async def postgres_media_attach_to_entry(user_id: str, entry_id: str, item: Medi
             RETURNING id, entry_id, media_type, url, label
             """,
             (entry_id, item.media_type, item.url),
+        )
+        return await cur.fetchone()
+
+
+async def postgres_media_delete(user_id: str, entry_id: str, media_id: str):
+    async with db_cursor(commit=True) as cur:
+        await cur.execute(
+            """
+            DELETE FROM entries_media
+            WHERE id = %s
+              AND entry_id = %s
+              AND entry_id IN (
+                SELECT e.id FROM entries e
+                JOIN trees t ON e.tree_id = t.id
+                WHERE t.user_id = %s
+              )
+            RETURNING url
+            """,
+            (media_id, entry_id, user_id),
         )
         return await cur.fetchone()
