@@ -16,7 +16,9 @@ from handlers.entries import (
     entry_resource_set_hearted,
     entry_resource_update,
     prayer_entry_resource_create,
+    prayer_entry_resource_update,
     verse_entry_resource_create,
+    verse_entry_resource_update,
 )
 from handlers.tags import (
     tag_create,
@@ -37,7 +39,8 @@ from schemas.tree_node import (
 )
 from schemas.tag import TagCreate, TagResponse
 from schemas.media import MediaCreate, MediaResponse, MediaUploadResponse
-from schemas.prayer import PrayerAnsweredUpdate, PrayerResponse
+from schemas.prayer import PrayerAnsweredUpdate, PrayerCreate, PrayerResponse
+from schemas.verse import VerseCreate
 from storage import save_upload
 
 from scripts.generate_VOTD import get_votd
@@ -143,6 +146,22 @@ async def set_entry_hearted(user_id: str, entry_id: str, hearted: bool):
 @router.put("/users/{user_id}/entries/{entry_id}", response_model=EntryOrStandaloneResponse)
 async def update_entry(user_id: str, entry_id: str, updates: EntryUpdate):
     entry = await entry_resource_update(user_id, entry_id, updates)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
+@router.put("/users/{user_id}/entries/{entry_id}/verse", response_model=VerseEntryResponse)
+async def update_verse_entry(user_id: str, entry_id: str, verse: VerseCreate):
+    entry = await verse_entry_resource_update(user_id, entry_id, verse)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
+@router.put("/users/{user_id}/entries/{entry_id}/prayer", response_model=PrayerEntryResponse)
+async def update_prayer_entry(user_id: str, entry_id: str, prayer: PrayerCreate):
+    entry = await prayer_entry_resource_update(user_id, entry_id, prayer)
     if entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
     return entry
