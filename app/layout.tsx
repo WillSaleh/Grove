@@ -36,8 +36,11 @@ interface Props {
 }
 
 export default function RootLayout({ children }: Props) {
+  // suppressHydrationWarning: THEME_BOOTSTRAP sets data-theme + accent CSS vars on <html> before
+  // hydration (to avoid a theme flash), which the server can't predict. This silences the expected
+  // attribute mismatch on <html> only — it's shallow and won't hide real mismatches elsewhere.
   return (
-    <html lang="en" className={`${inter.variable} ${sora.variable} ${sourceSerif.variable} h-full`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${sora.variable} ${sourceSerif.variable} h-full`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         {/* Phosphor icon web font, loaded per-weight (the bare package URL serves JS, not CSS). */}
