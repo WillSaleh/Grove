@@ -66,7 +66,7 @@ export function TimelineHeader({
 
   return (
     <header className="relative bg-transparent px-[clamp(20px,4vw,52px)] pb-6 pt-[26px]">
-      <div className="mb-[18px] flex items-start justify-between gap-7">
+      <div className={`mb-[18px] flex items-start gap-7${votText ? " md:pr-[346px]" : ""}`}>
         <div className="flex min-w-0 items-start gap-4">
           <Avatar border="3px solid var(--ring)" fontSize={19} initials={personInitials} size={54} />
           <div className="min-w-0">
@@ -85,7 +85,7 @@ export function TimelineHeader({
         </div>
 
         {votText ? (
-          <div className="hidden max-w-[330px] flex-none text-right opacity-[.62] md:block">
+          <div className="absolute right-[clamp(20px,4vw,52px)] top-[26px] hidden max-w-[330px] text-right opacity-[.62] md:block">
             <div className="inline-flex items-center justify-end gap-[6px] text-[10px] font-bold uppercase tracking-[.14em] text-subtle-2">
               <Icon className="text-[13px]" name="ph-book-bookmark" weight="duotone" /> Verse of the Day
             </div>
